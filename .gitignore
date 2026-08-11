@@ -9,3 +9,6 @@ data/
 .DS_Store
 Thumbs.db
 public/img/_test_*
+
+# 발표 자료: 제출물(pptx/pdf)과 차트는 추적하고, 확인용 미리보기 이미지는 뺀다
+outputs/preview/
