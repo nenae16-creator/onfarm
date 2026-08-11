@@ -1,4 +1,5 @@
 import type { QualityHint } from '../domain/types.js';
+import type { PolicyEvidence } from './policy.js';
 
 /**
  * 브라우저(canvas)에서 뽑아 서버로 보내는 이미지 특징.
@@ -57,6 +58,12 @@ export interface VisionProvider {
   readonly name: string;
   /** true 면 이미지가 외부로 나가지 않는다(로컬 판정). 화면에 그대로 표기한다. */
   readonly offline: boolean;
+  /**
+   * 이 provider 의 성능을 실제로 측정한 증거.
+   * 중앙 안전 정책(policy.ts)이 신뢰도 상한과 등급 사용 여부를 정할 때 쓴다.
+   * 측정된 적 없는 provider(휴리스틱·LLM·mock)는 넣지 않는다 → 보수적으로 취급된다.
+   */
+  readonly evidence?: PolicyEvidence | null;
   analyzeProduct(input: VisionInput): Promise<RecognitionResult>;
 }
 

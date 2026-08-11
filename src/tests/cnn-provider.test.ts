@@ -7,7 +7,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
-import { CnnVisionProvider, capConfidence, gradeIsUsable, loadMetadata } from '../ai/providers/cnn.js';
+import { CnnVisionProvider, loadMetadata, toEvidence } from '../ai/providers/cnn.js';
 import type { CnnMetadata } from '../ai/providers/cnn.js';
 import { VisionProviderError } from '../ai/types.js';
 
@@ -53,32 +53,6 @@ describe('CNN provider — 모델이 없을 때', () => {
   });
 });
 
-describe('CNN provider — 확신도 상한', () => {
-  it('개체 단위 검증 정확도를 넘는 확신도를 잘라낸다', () => {
-    // 모델이 0.99 를 불러도 실측 상한(0.82)을 넘겨 표시하지 않는다
-    assert.equal(capConfidence(0.99, meta()), 0.82);
-    assert.equal(capConfidence(0.5, meta()), 0.5);
-  });
-
-  it('메타데이터에 수치가 없으면 보수적인 기본값을 쓴다', () => {
-    assert.equal(capConfidence(0.99, meta({ val_object_level: {} })), 0.8);
-  });
-});
-
-describe('CNN provider — 등급 사용 가능 판단', () => {
-  it('중량 단독 기준선을 넘으면 등급을 쓴다', () => {
-    assert.equal(gradeIsUsable(meta({ val_object_level: { grade: 0.7 }, weight_only_grade_baseline: 0.61 })), true);
-  });
-
-  it('기준선을 못 넘으면 등급을 쓰지 않는다 — 사진으로 등급을 본다고 말하지 않는다', () => {
-    assert.equal(gradeIsUsable(meta()), false, '0.55 는 기준선 0.61 보다 낮다');
-  });
-
-  it('수치가 없으면 쓰지 않는다', () => {
-    assert.equal(gradeIsUsable(meta({ weight_only_grade_baseline: undefined })), false);
-  });
-});
-
 describe('CNN provider — 입력 텐서 변환', () => {
   function provider(m: CnnMetadata = meta()): CnnVisionProvider {
     // 생성자는 private 이므로 변환 로직만 떼어 검사한다.
@@ -112,5 +86,21 @@ describe('CNN provider — 입력 텐서 변환', () => {
     const t = provider().toTensor(rgb);
     const plane = size * size;
     assert.ok((t[0] as number) > (t[plane] as number), 'R 평면이 G 평면보다 커야 한다');
+  });
+});
+
+describe('CNN provider — 증거 전달', () => {
+  it('메타데이터를 중앙 정책이 쓸 증거로 옮긴다', () => {
+    const ev = toEvidence(meta({
+      per_item: { 배: { grade_object_acc: 0.87, weight_only_baseline: 0.61, n_objects: 33 } },
+    } as never));
+    assert.equal(ev.item_object_acc, 0.82);
+    assert.equal(ev.field_evaluated, false, '실환경 평가 여부를 명시하지 않으면 false 여야 한다');
+    assert.ok(ev.per_item?.['배']);
+  });
+
+  it('per_item 이 없으면 증거에도 없다 — 정책이 등급을 막는다', () => {
+    const ev = toEvidence(meta());
+    assert.equal(ev.per_item, undefined);
   });
 });

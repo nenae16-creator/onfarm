@@ -489,6 +489,40 @@ describe('HTTP — 학습 모델용 픽셀 전달', () => {
   });
 });
 
+describe('HTTP — 중앙 안전 정책이 실제 응답에 적용된다', () => {
+  // mock provider 는 confidence 0.91 / quality_hint '상' 을 고정 반환하고 측정 증거가 없다.
+  // 정책 배선이 끊기면 그 값이 그대로 화면까지 나간다(2차 교차검증 #7).
+  it('증거 없는 provider 의 신뢰도가 정책 상한으로 잘려서 내려온다', async () => {
+    const call = client();
+    await loginAs(call, '김복순');
+    const res = await call('/api/ai/analyze', { body: { image: PNG_1X1, features: FEATURES } });
+    assert.equal(res.status, 200);
+    assert.ok(
+      res.body.recognition.confidence <= 0.85,
+      `정책 상한 0.85 를 넘었다: ${res.body.recognition.confidence}`,
+    );
+  });
+
+  it('증거 없는 provider 의 등급은 확인필요로 내려온다', async () => {
+    const call = client();
+    await loginAs(call, '김복순');
+    const res = await call('/api/ai/analyze', { body: { image: PNG_1X1, features: FEATURES } });
+    assert.equal(
+      res.body.recognition.quality_hint,
+      '확인필요',
+      "측정 증거가 없으면 '상' 을 그대로 보여주면 안 된다",
+    );
+  });
+
+  it('정책이 깎은 내역이 응답에 남는다', async () => {
+    const call = client();
+    await loginAs(call, '김복순');
+    const res = await call('/api/ai/analyze', { body: { image: PNG_1X1, features: FEATURES } });
+    assert.ok(Array.isArray(res.body.ai.policyApplied));
+    assert.ok(res.body.ai.policyApplied.length > 0, '무엇을 깎았는지 남아야 감사가 된다');
+  });
+});
+
 describe('HTTP — 정적 화면', () => {
   it('주요 화면이 모두 응답한다', async () => {
     for (const path of [

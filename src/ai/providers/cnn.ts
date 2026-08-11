@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { analyzeQuality } from '../quality-analysis.js';
 import { VisionProviderError } from '../types.js';
 import type { RecognitionResult, VisionInput, VisionProvider } from '../types.js';
+import type { ItemEvidence, PolicyEvidence } from '../policy.js';
 
 /**
  * AI 허브 농산물 품질(QC) 이미지로 학습한 CNN provider.
@@ -24,6 +25,10 @@ export interface CnnMetadata {
   val_object_level?: { item?: number; grade?: number; n_objects?: number };
   weight_only_grade_baseline?: number;
   mean_confidence_when_wrong?: number | null;
+  /** 실환경(폰 사진) 평가를 거쳤는가. tools/verify_model.mjs 가 기록한다. */
+  field_evaluated?: boolean;
+  /** 품목별 등급 증거. 없으면 등급을 쓰지 않는다. */
+  per_item?: Record<string, ItemEvidence>;
 }
 
 export function loadMetadata(dir: string): CnnMetadata {
@@ -40,23 +45,20 @@ export function loadMetadata(dir: string): CnnMetadata {
 }
 
 /**
- * 모델이 낸 확률을 그대로 쓰지 않는다.
+ * 이 모델의 측정 증거를 중앙 정책이 쓸 형태로 넘긴다.
  *
- * 학습 데이터는 스튜디오 촬영이고 독립 표본은 개체 수(1,258개)뿐이라, 실제 폰 사진에서의
- * 정확도는 검증셋 수치보다 낮을 수밖에 없다. 그래서 **개체 단위 검증 정확도**를 상한으로 잡는다.
- * (한바구니에서 provider 확률을 재검증 없이 믿었다가 안전장치가 통째로 우회된 전례가 있다)
+ * 상한과 등급 게이트를 여기(provider 안)에서 직접 적용하지 않는다.
+ * 그렇게 했더니 provider 를 바꾸면 통째로 우회됐다(2차 교차검증 #7).
+ * 판단은 policy.ts 가 하고, provider 는 증거만 제공한다.
  */
-export function capConfidence(raw: number, meta: CnnMetadata): number {
-  const ceiling = meta.val_object_level?.item ?? 0.8;
-  return Math.max(0, Math.min(raw, ceiling));
-}
-
-/** 등급 출력을 화면에 쓸 수 있는가 — 중량만 보는 기준선을 못 넘으면 쓰지 않는다. */
-export function gradeIsUsable(meta: CnnMetadata): boolean {
-  const model = meta.val_object_level?.grade;
-  const baseline = meta.weight_only_grade_baseline;
-  if (model === undefined || baseline === undefined) return false;
-  return model > baseline;
+export function toEvidence(meta: CnnMetadata): PolicyEvidence {
+  return {
+    field_evaluated: meta.field_evaluated === true,
+    ...(meta.val_object_level?.item !== undefined
+      ? { item_object_acc: meta.val_object_level.item }
+      : {}),
+    ...(meta.per_item ? { per_item: meta.per_item } : {}),
+  };
 }
 
 function softmax(logits: Float32Array | number[]): number[] {
@@ -70,6 +72,7 @@ function softmax(logits: Float32Array | number[]): number[] {
 export class CnnVisionProvider implements VisionProvider {
   readonly name = 'cnn';
   readonly offline = true;
+  readonly evidence: PolicyEvidence;
 
   private session: unknown = null;
 
@@ -77,7 +80,11 @@ export class CnnVisionProvider implements VisionProvider {
     private readonly meta: CnnMetadata,
     private readonly modelPath: string,
     private readonly ort: any,
-  ) {}
+    session: unknown,
+  ) {
+    this.evidence = toEvidence(meta);
+    this.session = session;
+  }
 
   /** onnxruntime-node 가 없으면 여기서 실패한다 → 팩토리가 heuristic 으로 폴백한다. */
   static async create(dir: string): Promise<CnnVisionProvider> {
@@ -85,6 +92,15 @@ export class CnnVisionProvider implements VisionProvider {
     const modelPath = join(dir, 'onfarm_qc.onnx');
     if (!existsSync(modelPath)) {
       throw new VisionProviderError(`모델 파일 없음: ${modelPath}`, 'cnn');
+    }
+    // ONNX 가 가중치를 외부 파일로 분리해 저장하는 경우가 있다(실제로 그렇게 나왔다).
+    // .onnx 만 배포하면 서버는 정상으로 뜨고 첫 요청에서야 죽는다 — 시작할 때 잡는다.
+    const externalData = `${modelPath}.data`;
+    if (!existsSync(externalData) && readFileSync(modelPath).includes('.onnx.data')) {
+      throw new VisionProviderError(
+        `외부 가중치 파일이 없습니다: ${externalData} (.onnx 와 같은 폴더에 두세요)`,
+        'cnn',
+      );
     }
     let ort: any;
     try {
@@ -96,7 +112,18 @@ export class CnnVisionProvider implements VisionProvider {
         'cnn',
       );
     }
-    return new CnnVisionProvider(meta, modelPath, ort);
+    // 세션을 여기서 만든다. lazy 로 두면 첫 동시 요청이 모델을 두 번 로딩하고(2차 교차검증 #12),
+    // 로딩 실패도 서버가 뜬 뒤에야 드러난다.
+    let session: unknown;
+    try {
+      session = await ort.InferenceSession.create(modelPath);
+    } catch (err) {
+      throw new VisionProviderError(
+        `ONNX 세션 생성 실패: ${err instanceof Error ? err.message : String(err)}`,
+        'cnn',
+      );
+    }
+    return new CnnVisionProvider(meta, modelPath, ort, session);
   }
 
   /** 브라우저가 보낸 224×224 RGB(0~255) 를 정규화된 NCHW 텐서로 바꾼다. */
@@ -128,9 +155,6 @@ export class CnnVisionProvider implements VisionProvider {
     const quality = analyzeQuality(input.features);
     const tensor = this.toTensor(input.pixels);
 
-    if (!this.session) {
-      this.session = await this.ort.InferenceSession.create(this.modelPath);
-    }
     const size = this.meta.img_size;
     const feeds = { image: new this.ort.Tensor('float32', tensor, [1, 3, size, size]) };
     const out = await (this.session as any).run(feeds);
@@ -163,9 +187,10 @@ export class CnnVisionProvider implements VisionProvider {
 
     const gradeIdx = gradeProbs.indexOf(Math.max(...gradeProbs));
     const modelGrade = this.meta.grades[gradeIdx];
-    // 등급은 기준선을 넘고 사진 자체에 문제가 없을 때만 쓴다.
+    // 사진 자체에 문제가 있으면 모델 등급을 쓰지 않는다.
+    // 품목별로 쓸 수 있는지는 중앙 정책(policy.ts)이 증거를 보고 판단한다.
     const hint =
-      gradeIsUsable(this.meta) && quality.issues.length === 0 && modelGrade
+      quality.issues.length === 0 && modelGrade
         ? (modelGrade as RecognitionResult['quality_hint'])
         : quality.hint;
 
@@ -175,13 +200,13 @@ export class CnnVisionProvider implements VisionProvider {
       product_ko: match.name_ko,
       variety_guess: match.variety,
       quality_hint: hint,
-      confidence: Number(capConfidence(top.p * (0.6 + 0.4 * quality.signalQuality), this.meta).toFixed(3)),
+      confidence: Number((top.p * (0.6 + 0.4 * quality.signalQuality)).toFixed(3)),
       detected_issues: quality.issues,
       description_basis: quality.basis,
       alternatives: ranked.slice(1, 3).flatMap((r) => {
         const alt = input.catalog.find((c) => c.name_ko === r.name);
         return alt
-          ? [{ product: alt.code, product_ko: alt.name_ko, confidence: Number(capConfidence(r.p, this.meta).toFixed(3)) }]
+          ? [{ product: alt.code, product_ko: alt.name_ko, confidence: Number(r.p.toFixed(3)) }]
           : [];
       }),
     };

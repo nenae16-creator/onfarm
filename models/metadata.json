@@ -31,7 +31,7 @@
     "grade": 0.7380314806348377
   },
   "val_object_level": {
-    "item": 1.0,
+    "item": 1,
     "grade": 0.705,
     "n_objects": 200
   },
@@ -42,5 +42,44 @@
     "스튜디오 촬영(흰 배경·1000×1000)으로 학습했다. 실제 폰 사진 성능은 별도 측정이 필요하다.",
     "독립 표본은 개체 수이며 이미지 수가 아니다. 대외 수치는 개체 단위를 쓴다.",
     "등급은 크기·중량 의존도가 높아 사진만으로는 상한이 있다. 확정 등급은 거점 실물 검수가 정한다."
-  ]
+  ],
+  "per_item": {
+    "감귤": {
+      "grade_object_acc": 0.75,
+      "weight_only_baseline": 0.625,
+      "item_object_acc": 1,
+      "n_objects": 24,
+      "grade_usable": true
+    },
+    "감자": {
+      "grade_object_acc": 1,
+      "weight_only_baseline": 0.75,
+      "item_object_acc": 1,
+      "n_objects": 24,
+      "grade_usable": true
+    },
+    "배": {
+      "grade_object_acc": 1,
+      "weight_only_baseline": 0.438,
+      "item_object_acc": 1,
+      "n_objects": 32,
+      "grade_usable": true
+    },
+    "사과": {
+      "grade_object_acc": 0.85,
+      "weight_only_baseline": 0.525,
+      "item_object_acc": 1,
+      "n_objects": 40,
+      "grade_usable": true
+    },
+    "양파": {
+      "grade_object_acc": 0.388,
+      "weight_only_baseline": 0.738,
+      "item_object_acc": 1,
+      "n_objects": 80,
+      "grade_usable": false
+    }
+  },
+  "field_evaluated": false,
+  "evidence_protocol": "중량 임계는 train 개체에서 적합, 평가는 valid 개체에서 1회. 모델은 개체별 확률 평균."
 }

@@ -65,6 +65,8 @@ export interface PipelineResult {
     modelTop: string | null;
     modelTopConfidence: number | null;
     modelSource: string | null;
+    /** 중앙 정책이 깎은 항목(신뢰도 상한·등급 차단). 비어 있지 않으면 화면·감사에 남긴다. */
+    policyApplied: string[];
   };
   /** manual 모드에서 큰 버튼으로 보여줄 전체 품목 */
   catalog: Array<Pick<Product, 'code' | 'name_ko' | 'emoji'>>;
@@ -110,6 +112,7 @@ export async function runPipeline(
   let offline: boolean;
   let degraded: string | null;
   let demoMode: boolean;
+  let policyApplied: string[] = [];
 
   const localQuality = analyzeQuality(req.features);
 
@@ -130,6 +133,7 @@ export async function runPipeline(
     offline = true;
     degraded = null;
     demoMode = false;
+    policyApplied = [];
   } else {
     const outcome = await recognizeProduct(
       {
@@ -146,6 +150,7 @@ export async function runPipeline(
     offline = outcome.offline;
     degraded = outcome.degraded;
     demoMode = outcome.demoMode;
+    policyApplied = outcome.policyApplied;
 
     // STEP 2 — 로컬 품질 신호 병합. 사진 자체에 문제가 있으면 그쪽을 우선한다.
     if (req.features) {
@@ -226,6 +231,7 @@ export async function runPipeline(
       modelTopConfidence:
         req.modelTopConfidence ?? (req.forcedProductCode ? null : recognition.confidence),
       modelSource: req.modelSource ?? (req.forcedProductCode ? null : source),
+      policyApplied,
     },
     catalog: items.map((p) => ({ code: p.code, name_ko: p.name_ko, emoji: p.emoji })),
   };
