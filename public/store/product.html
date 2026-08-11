@@ -48,6 +48,11 @@
         const ai = listing.ai_analysis ? JSON.parse(listing.ai_analysis) : null;
         const region = `${listing.region_sido} ${listing.region_sigungu}${listing.region_detail ? ` ${listing.region_detail}` : ''}`;
 
+        // ai_source 는 'cnn' / 'cnn+manual' / 'manual' / 'seed' 처럼 저장된다.
+        // manual 이 섞여 있으면 최종 품목은 농민이 고른 것이다.
+        const source = String(listing.ai_source ?? '');
+        const farmerPicked = source === 'manual' || source.endsWith('+manual');
+
         const timeline = el(
           'div',
           { class: 'timeline' },
@@ -62,7 +67,11 @@
           el('img', { class: 'detail-image', src: imageOf(listing), alt: listing.title }),
           el('div', { class: 'panel' }, [
             el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px' }, [
-              el('span', { class: 'badge badge-ai', text: `AI 확인: ${listing.product_name}` }),
+              // 품목을 누가 정했는지 그대로 밝힌다.
+              // 농민이 직접 고른 것을 'AI 확인'으로 표시하면 소비자를 오도한다.
+              farmerPicked
+                ? el('span', { class: 'badge badge-muted', text: `농민이 직접 선택: ${listing.product_name}` })
+                : el('span', { class: 'badge badge-ai', text: `AI 확인: ${listing.product_name}` }),
               // 확정 등급이 있으면 그것을 앞세우고, AI 참고값은 참고값으로만 남긴다.
               listing.confirmed_quality
                 ? el('span', { class: 'badge badge-hub', text: `거점 확정 등급: ${listing.confirmed_quality}` })
@@ -76,7 +85,7 @@
             timeline,
           ]),
           el('div', { class: 'panel' }, [
-            el('h3', { text: '상품 소개 (AI 자동 생성)' }),
+            el('h3', { text: farmerPicked ? '상품 소개 (자동 생성)' : '상품 소개 (AI 자동 생성)' }),
             el('p', { style: 'white-space:pre-line;margin:0;font-size:15px;line-height:1.7', text: listing.description }),
           ]),
           el('div', { class: 'panel' }, [
@@ -89,14 +98,28 @@
             el('div', { class: 'trust-row' }, [el('span', { class: 'k', text: '검수 거점' }), el('span', { class: 'v', text: listing.hub_name ?? '미지정' })]),
           ]),
           el('div', { class: 'panel' }, [
-            el('h3', { text: 'AI 이미지 확인 결과' }),
+            el('h3', { text: farmerPicked ? '품목 확인 방식' : 'AI 이미지 확인 결과' }),
             el('div', { class: 'trust-row' }, [
               el('span', { class: 'k', text: '판정 방식' }),
-              el('span', { class: 'v', text: ai?.source === 'seed' ? '시드 데이터' : (ai?.source ?? listing.ai_source ?? '-') }),
+              el('span', {
+                class: 'v',
+                text: source === 'seed'
+                  ? '시드 데이터'
+                  : farmerPicked
+                    ? (source === 'manual' ? '농민이 직접 선택' : `AI 제안 후 농민이 직접 선택 (${source.replace('+manual', '')})`)
+                    : source || '-',
+              }),
             ]),
             el('div', { class: 'trust-row' }, [
-              el('span', { class: 'k', text: '신뢰도' }),
-              el('span', { class: 'v', text: listing.ai_confidence ? `${Math.round(listing.ai_confidence * 100)}%` : '-' }),
+              el('span', { class: 'k', text: farmerPicked ? 'AI 1순위 신뢰도' : '신뢰도' }),
+              el('span', {
+                class: 'v',
+                text: farmerPicked
+                  ? '해당 없음 (농민 선택)'
+                  : listing.ai_confidence
+                    ? `${Math.round(listing.ai_confidence * 100)}%`
+                    : '-',
+              }),
             ]),
             el('div', { class: 'trust-row' }, [
               el('span', { class: 'k', text: '근거' }),

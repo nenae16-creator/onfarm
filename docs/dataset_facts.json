@@ -1,0 +1,8 @@
+{
+ "images": 122425,
+ "train_obj": 1056,
+ "valid_obj": 201,
+ "overlap": 1,
+ "used_obj": 1256,
+ "valid_obj_after": 200
+}

@@ -523,6 +523,51 @@ describe('HTTP — 중앙 안전 정책이 실제 응답에 적용된다', () =>
   });
 });
 
+describe('HTTP — 수동 선택 표기 (#11)', () => {
+  // 소비자 화면은 ai_source 로 'AI 확인' 과 '농민이 직접 선택' 을 가른다.
+  // 서버가 그 값을 정확히 남기지 않으면 화면이 소비자를 오도한다.
+  it('농민이 후보를 바꾸면 ai_source 에 manual 이 남는다', async () => {
+    const call = client();
+    await loginAs(call, '김복순');
+    const analyzed = await call('/api/ai/analyze', { body: { image: PNG_1X1, features: FEATURES } });
+    const forced = await call('/api/ai/analyze', {
+      body: { analysisId: analyzed.body.analysisId, productCode: 'sweet_potato' },
+    });
+    const created = await call('/api/farmer/listings', {
+      body: {
+        analysisId: forced.body.analysisId,
+        skuId: forced.body.selectedSku.id,
+        quantity: 2,
+        productCode: 'sweet_potato',
+      },
+    });
+    assert.equal(created.status, 201);
+    assert.match(
+      String(created.body.listing.ai_source),
+      /manual/,
+      '농민이 고른 사실이 남아야 소비자 화면이 정직해진다',
+    );
+  });
+
+  it('AI 판정 그대로 등록하면 manual 이 붙지 않는다', async () => {
+    const call = client();
+    await loginAs(call, '이만수');
+    const analyzed = await call('/api/ai/analyze', { body: { image: PNG_1X1, features: FEATURES } });
+    const created = await call('/api/farmer/listings', {
+      body: {
+        analysisId: analyzed.body.analysisId,
+        skuId: analyzed.body.selectedSku.id,
+        quantity: 2,
+      },
+    });
+    assert.equal(created.status, 201);
+    assert.ok(
+      !String(created.body.listing.ai_source).includes('manual'),
+      `AI 판정인데 manual 이 붙었다: ${created.body.listing.ai_source}`,
+    );
+  });
+});
+
 describe('HTTP — 정적 화면', () => {
   it('주요 화면이 모두 응답한다', async () => {
     for (const path of [
