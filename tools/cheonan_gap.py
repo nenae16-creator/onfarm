@@ -29,10 +29,17 @@ NATIONAL_ELDERLY_RATE = 0.788   # 2025 농림어업총조사, 경영주 60대 �
 
 
 def read_kosis(path: Path) -> tuple[int, str]:
-    """KOSIS 다운로드 CSV 에서 천안시 농가 수를 찾는다(인코딩·서식이 제각각이라 관대하게)."""
+    """
+    KOSIS 다운로드 CSV 에서 천안시 **농가 수(가구)** 를 찾는다.
+
+    ★열 이름을 반드시 보고 고른다.
+      처음에는 '행에서 가장 큰 숫자'를 농가 수로 삼았는데, 같은 행에 농가인구(21,433명)가
+      함께 있어 그 값을 집어 미참여율이 89.5% 로 부풀려졌다. 헤더를 읽어 '농가 (가구)'
+      열만 쓴다.
+    """
     raw = path.read_bytes()
     text = None
-    for enc in ("cp949", "euc-kr", "utf-8-sig", "utf-8"):
+    for enc in ("utf-8-sig", "cp949", "euc-kr", "utf-8"):
         try:
             text = raw.decode(enc)
             break
@@ -41,29 +48,74 @@ def read_kosis(path: Path) -> tuple[int, str]:
     if text is None:
         raise SystemExit("CSV 인코딩을 알 수 없습니다.")
 
-    rows = list(csv.reader(io.StringIO(text)))
+    rows = [r for r in csv.reader(io.StringIO(text)) if any(c.strip() for c in r)]
+
+    # '농가'가 들어가되 '인구'·'오차'는 빠진 열을 찾는다
+    col = None
+    header = None
     for row in rows:
-        joined = " ".join(row)
-        if "천안" not in joined:
+        for i, cell in enumerate(row):
+            name = cell.strip()
+            if "농가" in name and "인구" not in name and "오차" not in name:
+                col, header = i, name
+                break
+        if col is not None:
+            break
+    if col is None:
+        raise SystemExit(
+            "'농가 (가구)' 열을 찾지 못했습니다. KOSIS 다운로드 시 항목에 '농가'가 포함됐는지 확인하세요."
+        )
+
+    for row in rows:
+        if "천안" not in " ".join(row) or col >= len(row):
             continue
-        # 같은 행의 숫자 중 가장 큰 값을 농가 수로 본다(연도 열이 섞여 있을 수 있다)
-        nums = []
-        for cell in row:
-            c = cell.replace(",", "").strip()
-            if re.fullmatch(r"\d+(\.\d+)?", c):
-                v = float(c)
-                if v > 100:            # 연도(2024 등)와 구분하기 위한 하한
-                    nums.append(int(v))
-        if nums:
-            return max(nums), joined[:80]
+        cell = row[col].replace(",", "").strip()
+        if not re.fullmatch(r"\d+(\.\d+)?", cell):
+            continue
+        value = int(float(cell))
+        # 농가인구를 잘못 집었는지 자기점검: 천안 농가는 만 단위를 넘지 않는다
+        if value > 100_000:
+            raise SystemExit(f"'{header}' 열 값 {value:,} 이 비정상입니다. 열 선택을 확인하세요.")
+        return value, f"{' '.join(c for c in row if c.strip())[:70]}  [열: {header}]"
+
     raise SystemExit("CSV 에서 '천안' 행을 찾지 못했습니다. 지역 필터를 확인하세요.")
+
+
+def _self_test() -> None:
+    """
+    `python tools/cheonan_gap.py --self-test` — 열 선택이 옳은지 확인한다.
+    농가인구(21,433)를 농가 수로 잘못 집었던 실수가 재발하지 않게 고정한다.
+    """
+    import tempfile
+
+    sample = (
+        '"행정구역별(1)",행정구역별(2),2024,2024,2024,2024,2024,2024\n'
+        '"행정구역별(1)",행정구역별(2),농가 (가구),상대표준오차,농가인구 (명),'
+        '상대표준오차(농가인구),농가인구(남) (명),농가인구(여) (명)\n'
+        '"충청남도",천안시,9488,4.5,21433,5.0,10231,11202\n'
+    )
+    with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False, encoding="utf-8-sig") as fh:
+        fh.write(sample)
+        tmp = Path(fh.name)
+    try:
+        value, src = read_kosis(tmp)
+        assert value == 9488, f"농가 수를 {value} 로 읽었다 — 21433(농가인구)를 집으면 안 된다"
+        assert "농가 (가구)" in src, f"열 표기가 없다: {src}"
+        print(f"✅ 열 선택 정상: {value:,} 가구 (농가인구 21,433 과 구분됨)")
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--kosis", type=Path, help="KOSIS DT_1EA1011 다운로드 CSV")
     ap.add_argument("--total", type=int, help="천안시 전체 농가 수를 직접 입력")
+    ap.add_argument("--self-test", action="store_true", help="열 선택 로직 자체 검사")
     args = ap.parse_args()
+
+    if args.self_test:
+        _self_test()
+        return 0
 
     if args.total:
         total, src = args.total, "직접 입력"
