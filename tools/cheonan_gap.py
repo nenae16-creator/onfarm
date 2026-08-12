@@ -22,6 +22,10 @@ import re
 import sys
 from pathlib import Path
 
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace")
+
 LOCALFOOD_FARMS = 2256          # 한국경제 2026-05-27
 LOCALFOOD_STORES = 12
 LOCALFOOD_SALES_EOK = 271

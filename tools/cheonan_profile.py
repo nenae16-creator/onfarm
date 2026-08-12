@@ -89,7 +89,7 @@ def numeric(pairs: list[tuple[str, str]]) -> list[tuple[str, float]]:
 
 def classify(names: list[str]) -> str:
     joined = " ".join(names)
-    if re.search(r"\d+\s*세|세 미만|세 이상", joined):
+    if re.search(r"\d+\s*세|세\s*미만|세\s*이상|\d+\s*[~～-]\s*\d+", joined):
         return "age"
     if re.search(r"ha|헥타|㎡|평|규모", joined):
         return "farmland"
@@ -124,7 +124,7 @@ def report(path: Path) -> None:
         print(f"    {name:<22} {value:>10,.0f}   {share:>6.1%}")
 
     if kind == "age":
-        old = sum(v for n, v in parts if re.search(r"(6\d|7\d|8\d)\s*세", n))
+        old = sum(v for n, v in parts if re.search(r"(?:^|\D)(6\d|7\d|8\d)(?:\s*세|\s*[~～-]|\D|$)", n))
         if old:
             rate = old / base
             print(f"\n  경영주 60대 이상  {old:,.0f}가구  ({rate:.1%})")
@@ -178,9 +178,10 @@ def main() -> int:
     files = args.csv or sorted(p for p in DATA.glob("*.csv") if "1EA1011" not in p.name)
     if not files:
         print("읽을 CSV 가 없습니다.\n", file=sys.stderr)
-        print("KOSIS 에서 아래 두 가지를 받아 data/cheonan/ 에 넣으세요.", file=sys.stderr)
-        print("  · 경지규모별 농가   DT_1EA1015", file=sys.stderr)
-        print("  · 경영주 연령별 농가 (농림어업총조사 → 시군구 단위)", file=sys.stderr)
+        print("KOSIS 농림어업총조사(전수)에서 아래 두 가지를 받아 data/cheonan/ 에 넣으세요.", file=sys.stderr)
+        print("  · 경영주 연령 및 교육정도별 농가   DT_1AG20107 (2020)", file=sys.stderr)
+        print("  · 경지규모별 농가수 및 경지면적   (농림어업총조사 2020 → 시군구 단위)", file=sys.stderr)
+        print("※ DT_1EA1015/DT_1EA1019는 농림어업조사 표본표로 시도까지만 제공합니다.", file=sys.stderr)
         print("자세한 경로는 docs/CHEONAN_EVIDENCE.md 참고", file=sys.stderr)
         return 2
 
