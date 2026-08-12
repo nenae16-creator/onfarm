@@ -647,7 +647,51 @@ def build() -> Path:
         text(s, Inches(4.7), y + Inches(0.09), Inches(7.8), Inches(0.36), a, size=12.5, color=MUTED)
     source(s, "위험을 숨기면 질의응답에서 드러난다. 가장 큰 위험을 먼저 적고, 그 위험이 현실이 돼도 서비스가 멈추지 않게 설계했다.")
 
-    # 14 마무리 ──────────────────────────────────────────────────────────
+    # 14 활용 데이터 명세 ────────────────────────────────────────────────
+    # 공고문 「데이터 활용 기준」이 출처·수집시점·범위·주요 변수 기재를 요구한다.
+    # 별도 문서에만 두면 요건 미충족으로 읽힐 수 있어 제안서 안에 넣는다.
+    s = blank(prs); head(s, "활용 데이터", "쓴 데이터를 전부 밝힌다", 14)
+    text(s, Inches(0.7), Inches(1.8), Inches(11.9), Inches(0.45),
+         "공고문이 요구하는 출처·수집 시점·범위·주요 변수를 데이터별로 적었습니다.",
+         size=15, color=MUTED)
+    xs = [Inches(1.0), Inches(3.9), Inches(5.9), Inches(7.8), Inches(10.0)]
+    ws = [Inches(2.8), Inches(1.9), Inches(1.8), Inches(2.1), Inches(2.6)]
+    for x, w, h in zip(xs, ws, ["데이터 · 출처", "수집 시점", "기준 시점", "사용 범위", "주요 변수"]):
+        text(s, x, Inches(2.42), w, Inches(0.35), h, size=12, bold=True, color=ORANGE)
+    rows = [
+        (("AI Hub 농산물 품질(QC) 이미지", "데이터셋 149 · 승인 후 수령"),
+         ("2026-08-09", ""), ("2020 구축", "2023-09 갱신"),
+         ("5개 품목", "122,425장"), ("품목·품종·등급·중량", "group_no(개체)")),
+        (("KOSIS DT_1EA1011", "농림어업조사 · 표본"),
+         ("2026-08-12", "CSV"), ("2024", ""),
+         ("충남 천안시", ""), ("농가(가구)", "상대표준오차")),
+        (("KOSIS DT_1AG20107", "농림어업총조사 · 전수"),
+         ("2026-08-12", "OpenAPI"), ("2020", ""),
+         ("천안시 34010", "전국 00 대조"), ("연령대별 농가·평균연령", "경지규모별 농가")),
+        (("공공데이터포털 15154733", "천안시 공모전 정보"),
+         ("2026-08-11", "CSV"), ("~2024", ""),
+         ("26개 대회", "수상 173건"), ("공모전명·분야", "수상작명")),
+    ]
+    for i, row in enumerate(rows):
+        y = Inches(2.9 + i * 0.9)
+        band = box(s, Inches(0.7), y - Inches(0.1), Inches(11.95), Inches(0.82),
+                   fill=CREAM if i % 2 == 0 else RGBColor(0xF7, 0xF2, 0xE9), line=None)
+        band.shadow.inherit = False
+        for x, w, cell in zip(xs, ws, row):
+            paras = [[(cell[0], {"size": 11.5, "bold": True})]]
+            if cell[1]:
+                paras.append([(cell[1], {"size": 10.5, "color": MUTED})])
+            text(s, x, y, w, Inches(0.78), paras, spacing=1.2)
+    text(s, Inches(0.7), Inches(6.5), Inches(11.9), Inches(0.45),
+         [[("AI Hub 자료는 같은 물체를 여러 장 찍은 데이터라 이미지가 아닌 ",
+            {"size": 12.5, "color": MUTED}),
+           ("개체 단위로 분할", {"size": 12.5, "bold": True}),
+           ("했습니다 — 학습 1,056 · 검증 200개체.", {"size": 12.5, "color": MUTED})]],
+         spacing=1.2)
+    source(s, "전체 명세는 docs/DATA_SOURCES.md — 변수·이용조건·한계를 데이터별로 적었다. "
+              "제출물에 실제 농가 사진과 개인정보는 포함되지 않는다.")
+
+    # 15 마무리 ──────────────────────────────────────────────────────────
     s = blank(prs, INK)
     text(s, Inches(0.9), Inches(1.15), Inches(11.5), Inches(0.4),
          "정리", size=14, bold=True, color=ORANGE)
