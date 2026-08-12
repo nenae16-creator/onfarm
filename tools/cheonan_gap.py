@@ -29,7 +29,8 @@ for stream in (sys.stdout, sys.stderr):
 LOCALFOOD_FARMS = 2256          # 한국경제 2026-05-27
 LOCALFOOD_STORES = 12
 LOCALFOOD_SALES_EOK = 271
-NATIONAL_ELDERLY_RATE = 0.788   # 2025 농림어업총조사, 경영주 60대 이상
+CHEONAN_ELDERLY_RATE = 0.700    # 천안 실측: DT_1AG20107(2020 농림어업총조사) 7,773/11,111
+                                # 전국 78.8% 를 적용하던 추정치를 걷어냈다 — 출처가 확인되지 않았다
 
 
 def read_kosis(path: Path) -> tuple[int, str]:
@@ -135,7 +136,7 @@ def main() -> int:
 
     outside = total - LOCALFOOD_FARMS
     rate = outside / total if total else 0
-    elderly_outside = outside * NATIONAL_ELDERLY_RATE
+    elderly_outside = outside * CHEONAN_ELDERLY_RATE
 
     print(f"출처: {src}\n")
     print("=" * 54)
@@ -145,7 +146,7 @@ def main() -> int:
     print(f"→ 미참여율                {rate:>8.1%}")
     print("=" * 54)
     print(f"\n그중 경영주 60대 이상 추정   약 {elderly_outside:>7,.0f} 가구")
-    print(f"  (전국 비율 {NATIONAL_ELDERLY_RATE:.1%} 적용 — 천안 실제 분포 확보 시 교체할 것)")
+    print(f"  (전국 비율 {CHEONAN_ELDERLY_RATE:.1%} 적용 — 천안 실제 분포 확보 시 교체할 것)")
 
     print("\n제안서 문장 초안")
     print("-" * 54)

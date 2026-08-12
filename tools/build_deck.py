@@ -53,7 +53,9 @@ CHEONAN_FARM_POP = 21_433
 LOCALFOOD_FARMS = 2_256        # 한국경제 2026-05-27
 LOCALFOOD_STORES = 12
 LOCALFOOD_SALES_EOK = 271
-ELDERLY_RATE = 0.788           # 2025 농림어업총조사, 경영주 60대 이상(전국)
+ELDERLY_RATE = 0.700           # 천안 실측 7,773/11,111 (DT_1AG20107, 2020 농림어업총조사)
+CHEONAN_MEAN_AGE = 65.1        # 위와 같은 표, 경영주 평균 연령
+SMALL_FARM_RATE = 0.767        # 위와 같은 표, 경지 1ha 미만 8,524/11,111
 CONTEST_WORKS = 173
 CONTEST_BLANK = 6
 
@@ -375,7 +377,9 @@ def build() -> Path:
     rows = [
         ("천안시 전체 농가", f"{CHEONAN_FARMS:,}가구", "KOSIS 농림어업조사 2024 (상대표준오차 4.5%)"),
         ("로컬푸드 참여 농가", f"{LOCALFOOD_FARMS:,}가구", f"직매장 {LOCALFOOD_STORES}곳 · 2026년 매출 {LOCALFOOD_SALES_EOK}억 원"),
-        ("체계 밖 농가", f"{OUTSIDE:,}가구", f"그중 경영주 60대 이상 약 {ELDERLY_OUTSIDE:,}가구로 추정"),
+        ("체계 밖 농가", f"{OUTSIDE:,}가구",
+         f"그들은 평균 {CHEONAN_MEAN_AGE}세가 경영하는 소농이다 "
+         f"(60대 이상 {ELDERLY_RATE:.0%} · 경지 1ha 미만 {SMALL_FARM_RATE:.0%})"),
     ]
     for i, (k, v, note) in enumerate(rows):
         y = Inches(2.1 + i * 1.28)
@@ -386,9 +390,10 @@ def build() -> Path:
              color=MUTED, spacing=1.2)
     box(s, Inches(6.5), Inches(5.95), Inches(6.0), Inches(0.78), fill=RGBColor(0xF5, 0xEF, 0xE4), line=None)
     text(s, Inches(6.75), Inches(6.08), Inches(5.6), Inches(0.55),
-         "두 수치는 조사 주체·기준이 달라 정밀한 차집합이 아니라 규모 감각으로 제시합니다.",
+         "조사 주체·기준이 달라 정밀한 차집합이 아닙니다. 농가 수는 2024년, "
+         "연령·경지 비율은 2020년 총조사입니다.",
          size=12.5, color=INK, spacing=1.2)
-    source(s, "출처: KOSIS 「행정구역별 농가·농가인구」 DT_1EA1011(2024) · 천안시 로컬푸드 현황 보도(2026-05-27) · 산출: tools/cheonan_gap.py")
+    source(s, "출처: KOSIS DT_1EA1011(2024) 농가 · DT_1AG20107(2020 농림어업총조사) 연령·경지 · 로컬푸드 현황 보도(2026-05-27) · 산출 tools/cheonan_gap.py·cheonan_age.py")
 
     # 4 등록 장벽 ────────────────────────────────────────────────────────
     s = blank(prs); head(s, "문제 정의", "판로가 없는 게 아니라, 등록을 못 한다", 4)

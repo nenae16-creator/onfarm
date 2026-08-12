@@ -1,8 +1,8 @@
 """
 천안 농가의 '누구인가'(경영주 연령)와 '얼마나 작은가'(경지규모)를 KOSIS CSV 에서 읽는다.
 
-지금 제안서는 경영주 60대 이상 비율에 **전국 값 78.8%** 를 그대로 적용한 추정치를 쓴다.
-천안 실제 분포를 넣으면 그 추정 표기를 지울 수 있다.
+천안 경영주 연령은 tools/cheonan_age.py 로 확보했다(DT_1AG20107, 2020 총조사).
+이 파일은 그 밖의 KOSIS CSV 를 훑어볼 때 쓴다.
 
     python tools/cheonan_profile.py                       # data/cheonan/ 의 CSV 전부 읽는다
     python tools/cheonan_profile.py --csv <파일>
@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data" / "cheonan"
 
 CHEONAN_FARMS = 9_488       # DT_1EA1011(2024) — 대조용 기준값
-NATIONAL_ELDERLY = 0.788    # 2025 농림어업총조사 전국 경영주 60대 이상
+CHEONAN_ELDERLY = 0.700     # 천안 실측(DT_1AG20107, 2020) — 전국값 대입은 폐기했다
 REGION = "천안"
 
 # 값이 아니라 설명인 열 — 합계 계산에서 뺀다
@@ -128,10 +128,10 @@ def report(path: Path) -> None:
         if old:
             rate = old / base
             print(f"\n  경영주 60대 이상  {old:,.0f}가구  ({rate:.1%})")
-            print(f"  전국 {NATIONAL_ELDERLY:.1%} 대비 {rate - NATIONAL_ELDERLY:+.1%}p")
+            print(f"  전국 {CHEONAN_ELDERLY:.1%} 대비 {rate - CHEONAN_ELDERLY:+.1%}p")
             print("\n  → 제안서에서 '전국 비율을 적용한 추정' 표기를 지우고 이 값을 쓸 수 있습니다.")
             print(f"     docs/CHEONAN_EVIDENCE.md 와 tools/cheonan_gap.py 의 "
-                  f"NATIONAL_ELDERLY_RATE 를 함께 고치세요.")
+                  f"CHEONAN_ELDERLY_RATE 를 함께 고치세요.")
     elif kind == "farmland":
         small = sum(v for n, v in parts if re.search(r"0\.5|5천|미만", n))
         if small:

@@ -63,8 +63,8 @@ def call(key: str, tbl: str, *, obj_l1="ALL", obj_l2="", itm="ALL",
     return body
 
 
-def probe(key: str, tbl: str, prd: str) -> None:
-    rows = call(key, tbl, prd=prd)
+def probe(key: str, tbl: str, prd: str, obj1: str, obj2: str, itm: str) -> None:
+    rows = call(key, tbl, prd=prd, obj_l1=obj1, obj_l2=obj2, itm=itm)
     if not rows:
         print("데이터가 비어 있습니다. 주기(--prd)를 바꿔 보세요(Y 연간 / F 부정기 / M 월).")
         return
@@ -96,16 +96,18 @@ def probe(key: str, tbl: str, prd: str) -> None:
         print(f"\n  연령 구분으로 보이는 항목: {', '.join(age[:10])}")
 
 
-def fetch(key: str, tbl: str, prd: str) -> None:
-    rows = call(key, tbl, prd=prd)
-    picked = [r for r in rows if REGION in (r.get("C1_NM") or "")]
+def fetch(key: str, tbl: str, prd: str, obj1: str, obj2: str, itm: str) -> None:
+    rows = call(key, tbl, prd=prd, obj_l1=obj1, obj_l2=obj2, itm=itm)
+    # 지역 코드를 직접 지정했으면 이미 그 지역만 왔다 — 이름으로 다시 거르지 않는다
+    picked = rows if obj1 not in ("", "ALL") else [r for r in rows if REGION in (r.get("C1_NM") or "")]
     if not picked:
         raise SystemExit(
             f"'{REGION}' 행이 없습니다. 먼저 probe 로 이 표에 천안이 있는지 확인하세요."
         )
 
     DATA.mkdir(parents=True, exist_ok=True)
-    out = DATA / f"KOSIS_{tbl}_천안.csv"
+    tag = "천안" if obj1 in ("", "ALL", "34010") else obj1
+    out = DATA / f"KOSIS_{tbl}_{tag}.csv"
     cols = ["TBL_NM", "PRD_DE", "C1_NM", "C2_NM", "ITM_NM", "DT", "UNIT_NM"]
     with out.open("w", encoding="utf-8-sig", newline="") as fh:
         w = csv.writer(fh)
@@ -126,6 +128,11 @@ def main() -> int:
     ap.add_argument("action", choices=["probe", "fetch"])
     ap.add_argument("tblId")
     ap.add_argument("--prd", default="Y", help="주기: Y 연간(기본) / F 부정기 / M 월")
+    ap.add_argument("--obj1", default="ALL",
+                    help="지역 코드. 전체(ALL)는 총조사처럼 큰 표에서 40,000셀 제한에 걸린다. "
+                         "천안시=34010")
+    ap.add_argument("--obj2", default="", help="분류2 코드(ALL 가능)")
+    ap.add_argument("--itm", default="ALL", help="항목 코드")
     ap.add_argument("--key", default=os.environ.get("KOSIS_API_KEY", ""))
     args = ap.parse_args()
 
@@ -135,7 +142,8 @@ def main() -> int:
         print('발급 후:  $env:KOSIS_API_KEY = "받은키"', file=sys.stderr)
         return 2
 
-    (probe if args.action == "probe" else fetch)(args.key, args.tblId, args.prd)
+    (probe if args.action == "probe" else fetch)(
+        args.key, args.tblId, args.prd, args.obj1, args.obj2, args.itm)
     return 0
 
 
