@@ -12,3 +12,13 @@ public/img/_test_*
 
 # 발표 자료: 제출물(pptx/pdf)과 차트는 추적하고, 확인용 미리보기 이미지는 뺀다
 outputs/preview/
+
+# 영상 중간 산출물: 최종 mp4 만 추적한다(webm 원본·자막·음성 조각은 재생성 가능)
+outputs/demo/*.webm
+outputs/demo/caps/
+outputs/demo/voice/
+outputs/demo/proof/
+outputs/demo/final_check/
+outputs/demo/bg.png
+outputs/demo/narration.m4a
+outputs/demo/video_path.txt

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "home",
+    "line": "천안의 고령 농가가 농산물을 파는 데 걸리는 시간, 3분입니다.",
+    "mp3": "C:\\Users\\Admin\\Documents\\onfarm\\outputs\\demo\\voice\\00_home.mp3",
+    "holdMs": 6580,
+    "voiceSec": 5.88
+  },
+  {
+    "id": "photo",
+    "line": "농가가 하는 첫 번째 일은 사진을 찍는 것입니다.",
+    "mp3": "C:\\Users\\Admin\\Documents\\onfarm\\outputs\\demo\\voice\\01_photo.mp3",
+    "holdMs": 5188,
+    "voiceSec": 4.488
+  },
+  {
+    "id": "analyze",
+    "line": "사진을 올리면 판정이 시작됩니다.",
+    "mp3": "C:\\Users\\Admin\\Documents\\onfarm\\outputs\\demo\\voice\\02_analyze.mp3",
+    "holdMs": 4372,
+    "voiceSec": 3.672
+  },
+  {
+    "id": "candidates",
+    "line": "AI 는 확정하지 않습니다. 물어봅니다. 1번, 2번, 3번 중에 고르시면 됩니다.",
+    "mp3": "C:\\Users\\Admin\\Documents\\onfarm\\outputs\\demo\\voice\\03_candidates.mp3",
+    "holdMs": 11404,
+    "voiceSec": 10.704
+  },
+  {
+    "id": "alternative",
+    "line": "후보에 없으면 직접 고를 수 있습니다. AI 가 틀려도 판매는 진행됩니다.",
+    "mp3": "C:\\Users\\Admin\\Documents\\onfarm\\outputs\\demo\\voice\\04_alternative.mp3",
+    "holdMs": 8284,
+    "voiceSec": 7.584
+  },
+  {
+    "id": "pick",
+    "line": "번호를 누르면 판매 단위가 나옵니다.",
+    "mp3": "C:\\Users\\Admin\\Documents\\onfarm\\outputs\\demo\\voice\\05_pick.mp3",
+    "holdMs": 4420,
+    "voiceSec": 3.72
+  },
+  {
+    "id": "quantity",
+    "line": "가격은 농가가 정하지 않습니다. 운영자가 미리 정해 둔 표준 가격입니다. 몇 상자 파실지만 누르시면 됩니다.",
+    "mp3": "C:\\Users\\Admin\\Documents\\onfarm\\outputs\\demo\\voice\\06_quantity.mp3",
+    "holdMs": 12172,
+    "voiceSec": 11.472
+  },
+  {
+    "id": "confirm",
+    "line": "이대로 올릴지 확인합니다.",
+    "mp3": "C:\\Users\\Admin\\Documents\\onfarm\\outputs\\demo\\voice\\07_confirm.mp3",
+    "holdMs": 3964,
+    "voiceSec": 3.264
+  },
+  {
+    "id": "done",
+    "line": "끝났습니다. 농가가 한 일은 사진 찍기, 번호 고르기, 수량 확인 세 가지뿐입니다.",
+    "mp3": "C:\\Users\\Admin\\Documents\\onfarm\\outputs\\demo\\voice\\08_done.mp3",
+    "holdMs": 9844,
+    "voiceSec": 9.144
+  },
+  {
+    "id": "store",
+    "line": "글자를 친 곳은 한 곳도 없습니다. 올린 상품은 소비자 화면에 바로 올라갑니다.",
+    "mp3": "C:\\Users\\Admin\\Documents\\onfarm\\outputs\\demo\\voice\\09_store.mp3",
+    "holdMs": 8884,
+    "voiceSec": 8.184
+  }
+]

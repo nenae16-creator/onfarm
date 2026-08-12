@@ -341,6 +341,7 @@
 
 .kv {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   padding: 10px 0;
@@ -352,13 +353,21 @@
   border-bottom: none;
 }
 
+/* 라벨은 절대 줄바꿈하지 않는다 — 값이 길면 '다음 순/서' 처럼 낱말이 쪼개진다 */
 .kv .k {
   color: var(--muted);
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .kv .v {
   font-weight: 700;
   text-align: right;
+  flex: 1 1 auto;
+  min-width: 0;
+  /* 한글은 어절 단위로 끊는다 — 없으면 '갖다 놓으/면 끝' 처럼 낱말 중간이 잘린다 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .list-item {

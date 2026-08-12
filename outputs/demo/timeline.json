@@ -1,0 +1,52 @@
+[
+  {
+    "id": "home",
+    "start": 1.674,
+    "end": 8.266
+  },
+  {
+    "id": "photo",
+    "start": 9.536,
+    "end": 14.74
+  },
+  {
+    "id": "analyze",
+    "start": 14.768,
+    "end": 19.15
+  },
+  {
+    "id": "candidates",
+    "start": 19.173,
+    "end": 30.605
+  },
+  {
+    "id": "alternative",
+    "start": 31.027,
+    "end": 39.328
+  },
+  {
+    "id": "pick",
+    "start": 39.679,
+    "end": 44.106
+  },
+  {
+    "id": "quantity",
+    "start": 44.777,
+    "end": 56.957
+  },
+  {
+    "id": "confirm",
+    "start": 57.058,
+    "end": 61.036
+  },
+  {
+    "id": "done",
+    "start": 61.132,
+    "end": 70.987
+  },
+  {
+    "id": "store",
+    "start": 72.022,
+    "end": 80.919
+  }
+]

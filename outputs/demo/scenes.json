@@ -1,0 +1,42 @@
+[
+  {
+    "id": "home",
+    "holdMs": 6580
+  },
+  {
+    "id": "photo",
+    "holdMs": 5188
+  },
+  {
+    "id": "analyze",
+    "holdMs": 4372
+  },
+  {
+    "id": "candidates",
+    "holdMs": 11404
+  },
+  {
+    "id": "alternative",
+    "holdMs": 8284
+  },
+  {
+    "id": "pick",
+    "holdMs": 4420
+  },
+  {
+    "id": "quantity",
+    "holdMs": 12172
+  },
+  {
+    "id": "confirm",
+    "holdMs": 3964
+  },
+  {
+    "id": "done",
+    "holdMs": 9844
+  },
+  {
+    "id": "store",
+    "holdMs": 8884
+  }
+]
