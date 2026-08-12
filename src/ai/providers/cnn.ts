@@ -69,6 +69,22 @@ function softmax(logits: Float32Array | number[]): number[] {
   return exps.map((e) => e / sum);
 }
 
+/**
+ * 한 장을 중앙에서 여러 배율로 잘라 함께 판정한다.
+ *
+ * 학습 사진은 농산물이 화면을 꽉 채운 스튜디오 촬영이다(선형 차지비율 중앙값 98%).
+ * 그런데 사람이 폰으로 찍으면 피사체가 화면의 절반도 안 되기 쉽고, 그 구간은
+ * 모델이 학습에서 한 번도 본 적 없는 입력이라 정확도가 무너진다.
+ * 실측: 화면을 꽉 채우면 5품목 전부 100%, 25%만 차지하면 감자는 top-3 에도 못 든다.
+ *
+ * 중앙을 잘라 확대하면 입력이 학습 분포 안으로 돌아온다. 배율을 여러 개 쓰는 이유는
+ * 피사체가 얼마나 큰지 미리 알 수 없기 때문이고, 1.0 을 항상 포함하는 이유는
+ * 피사체가 가장자리에 치우쳤을 때 크롭이 오히려 잘라내기 때문이다.
+ *
+ * 배율 수를 줄이면(예: 1.0+0.25) 중앙 조건은 같지만 치우친 구도에서 되레 나빠진다.
+ */
+const TTA_SCALES = [1, 0.7, 0.5, 0.35, 0.25] as const;
+
 export class CnnVisionProvider implements VisionProvider {
   readonly name = 'cnn';
   readonly offline = true;
@@ -148,19 +164,86 @@ export class CnnVisionProvider implements VisionProvider {
     return out;
   }
 
+  /**
+   * 224 원본에서 중앙 정사각(비율 scale)을 잘라 다시 224 로 확대한다(이중선형).
+   *
+   * 서버는 브라우저가 보낸 224×224 만 받는다. 원본 해상도가 오지 않으므로 화소를
+   * 되살릴 수는 없지만, 잃어버린 것은 화소가 아니라 '피사체가 프레임을 채우는 정도'다.
+   * 같은 56px 조각이라도 화면을 꽉 채우면 맞히고 구석에 있으면 틀린다는 것을 측정했다.
+   */
+  cropCenter(rgb: Uint8Array, scale: number): Uint8Array {
+    const size = this.meta.img_size;
+    if (scale >= 1) return rgb;
+    const crop = Math.max(8, Math.round(size * scale));
+    const off = Math.floor((size - crop) / 2);
+    const out = new Uint8Array(size * size * 3);
+    const ratio = size > 1 ? (crop - 1) / (size - 1) : 0;
+    for (let y = 0; y < size; y += 1) {
+      const sy = y * ratio;
+      const y0 = Math.floor(sy);
+      const y1 = Math.min(y0 + 1, crop - 1);
+      const wy = sy - y0;
+      for (let x = 0; x < size; x += 1) {
+        const sx = x * ratio;
+        const x0 = Math.floor(sx);
+        const x1 = Math.min(x0 + 1, crop - 1);
+        const wx = sx - x0;
+        const i00 = ((off + y0) * size + off + x0) * 3;
+        const i01 = ((off + y0) * size + off + x1) * 3;
+        const i10 = ((off + y1) * size + off + x0) * 3;
+        const i11 = ((off + y1) * size + off + x1) * 3;
+        const o = (y * size + x) * 3;
+        for (let c = 0; c < 3; c += 1) {
+          const a = (rgb[i00 + c] ?? 0) * (1 - wx) + (rgb[i01 + c] ?? 0) * wx;
+          const b = (rgb[i10 + c] ?? 0) * (1 - wx) + (rgb[i11 + c] ?? 0) * wx;
+          out[o + c] = Math.round(a * (1 - wy) + b * wy);
+        }
+      }
+    }
+    return out;
+  }
+
   async analyzeProduct(input: VisionInput): Promise<RecognitionResult> {
     if (!input.pixels) {
       throw new VisionProviderError('224×224 픽셀이 없습니다.', 'cnn');
     }
     const quality = analyzeQuality(input.features);
-    const tensor = this.toTensor(input.pixels);
-
     const size = this.meta.img_size;
-    const feeds = { image: new this.ort.Tensor('float32', tensor, [1, 3, size, size]) };
+    const plane = size * size * 3;
+
+    // 배율별 텐서를 한 배치로 묶어 한 번에 돌린다(전방 통과 5회, run 호출 1회).
+    const batch = new Float32Array(TTA_SCALES.length * plane);
+    TTA_SCALES.forEach((scale, i) => {
+      batch.set(this.toTensor(this.cropCenter(input.pixels as Uint8Array, scale)), i * plane);
+    });
+    const feeds = {
+      image: new this.ort.Tensor('float32', batch, [TTA_SCALES.length, 3, size, size]),
+    };
     const out = await (this.session as any).run(feeds);
 
-    const itemProbs = softmax(out['item_logits'].data as Float32Array);
-    const gradeProbs = softmax(out['grade_logits'].data as Float32Array);
+    const nItems = this.meta.items.length;
+    const itemLogits = out['item_logits'].data as Float32Array;
+    const perScale = TTA_SCALES.map((_, i) =>
+      softmax(itemLogits.subarray(i * nItems, (i + 1) * nItems)),
+    );
+
+    // 배율끼리 최댓값으로 합친 뒤 합이 1이 되게 되돌린다.
+    // 되돌리지 않으면 화면에 보이는 신뢰도가 부풀려진다 — '틀렸는데 자신 있는' 판정이 늘어난다.
+    const fused = Array.from({ length: nItems }, (_, k) =>
+      Math.max(...perScale.map((row) => row[k] ?? 0)),
+    );
+    const total = fused.reduce((a, b) => a + b, 0) || 1;
+    const itemProbs = fused.map((p) => p / total);
+
+    // 등급은 원본 배율만 쓴다. 잘라 확대한 그림에서 등급이 어떻게 되는지는 재본 적이 없다.
+    const nGrades = this.meta.grades.length;
+    const gradeProbs = softmax(
+      (out['grade_logits'].data as Float32Array).subarray(0, nGrades),
+    );
+
+    // 배율마다 1순위가 갈리면 사진이 애매하다는 뜻이다. 화면 근거 문구로 알려준다.
+    const picks = perScale.map((row) => row.indexOf(Math.max(...row)));
+    const scalesAgree = picks.every((p) => p === picks[0]);
 
     const ranked = itemProbs
       .map((p, i) => ({ name: this.meta.items[i] ?? '', p }))
@@ -202,7 +285,9 @@ export class CnnVisionProvider implements VisionProvider {
       quality_hint: hint,
       confidence: Number((top.p * (0.6 + 0.4 * quality.signalQuality)).toFixed(3)),
       detected_issues: quality.issues,
-      description_basis: quality.basis,
+      description_basis: scalesAgree
+        ? quality.basis
+        : [...quality.basis, '가까이서 한 번 더 찍으면 더 정확합니다.'],
       alternatives: ranked.slice(1, 3).flatMap((r) => {
         const alt = input.catalog.find((c) => c.name_ko === r.name);
         return alt
