@@ -5,6 +5,7 @@ import type { HubInspection } from './types.js';
 
 export interface InspectionInput {
   listingId: number;
+  orderItemId?: number;
   hubId: number | null;
   inspector: string;
   result: 'pass' | 'downgrade' | 'reject';
@@ -20,6 +21,17 @@ export function recordInspection(db: Db, input: InspectionInput): HubInspection 
   // 기록과 상태 변경은 함께 성립하거나 함께 실패해야 한다.
   // (검수 기록만 남고 상태는 그대로인 불일치를 막는다)
   return tx(db, () => {
+    if (input.orderItemId !== undefined) {
+      const item = one<{ listing_id: number; fulfillment_status: string }>(
+        db,
+        'SELECT listing_id, fulfillment_status FROM order_items WHERE id = ?',
+        input.orderItemId,
+      );
+      if (item?.listing_id !== input.listingId || item.fulfillment_status !== 'hub_received') {
+        throw new Error('입고 확인된 주문 상품만 검수할 수 있습니다.');
+      }
+    }
+
     const res = run(
       db,
       `INSERT INTO hub_inspections (listing_id, hub_id, inspector, result, graded_quality, note)
@@ -37,6 +49,12 @@ export function recordInspection(db: Db, input: InspectionInput): HubInspection 
     } else {
       setInspectionStatus(db, input.listingId, 'hub_passed');
       if (input.gradedQuality) setConfirmedQuality(db, input.listingId, input.gradedQuality);
+      run(
+        db,
+        `UPDATE order_items SET fulfillment_status = 'hub_passed'
+          WHERE listing_id = ? AND fulfillment_status = 'hub_received'`,
+        input.listingId,
+      );
     }
 
     const created = one<HubInspection>(

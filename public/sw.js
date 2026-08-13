@@ -3,14 +3,26 @@
   - 화면 껍데기(HTML/CSS/JS/아이콘)만 캐시해 통신이 느린 산지에서도 화면이 뜨게 한다.
   - API 응답은 절대 캐시하지 않는다(재고·주문이 과거 값으로 보이면 안 되므로).
 */
-const CACHE = 'onfarm-shell-v1';
+const CACHE = 'onfarm-shell-v3';
 const SHELL = [
+  '/',
+  '/login',
+  '/demo',
   '/farmer',
   '/farmer/sell',
+  '/farmer/listings',
+  '/farmer/orders',
+  '/farmer/settlement',
+  '/store/product',
+  '/store/cart',
+  '/store/orders',
+  '/hub',
   '/css/base.css',
   '/css/farmer.css',
   '/css/store.css',
   '/js/api.js',
+  '/js/cart.js',
+  '/js/store.js',
   '/js/speak.js',
   '/js/features.js',
   '/js/farmer-sell.js',
@@ -43,6 +55,10 @@ self.addEventListener('fetch', (event) => {
         }
         return res;
       })
-      .catch(() => caches.match(event.request).then((hit) => hit ?? caches.match('/farmer'))),
+      .catch(() =>
+        caches
+          .match(event.request)
+          .then((hit) => hit ?? caches.match(url.pathname.startsWith('/farmer') ? '/farmer' : '/')),
+      ),
   );
 });

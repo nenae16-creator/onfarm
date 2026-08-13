@@ -3,31 +3,60 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>ON-FARM · 상품</title>
+    <meta name="theme-color" content="#00754a" />
+    <meta name="description" content="ON-FARM 농산물의 생산지, 농가, 검수 과정과 가격을 확인하세요." />
+    <title>ON-FARM · 상품 정보</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/img/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/css/base.css" />
     <link rel="stylesheet" href="/css/store.css" />
   </head>
-  <body class="store">
+  <body class="store store-consumer">
+    <a class="skip-link" href="#mainContent">본문으로 바로가기</a>
+
     <header class="store-top">
       <div class="row">
-        <a class="logo" href="/"><span class="dot"></span>ON-FARM</a>
-        <div class="top-actions">
-          <a class="chip-link" href="/store/cart">장바구니 <span id="cartCount">0</span></a>
-        </div>
+        <a class="logo" href="/" aria-label="ON-FARM 산지 직송 매장 홈">
+          <img src="/img/icon.svg" alt="" aria-hidden="true" />
+          <span class="logo-copy"><strong>ON-FARM</strong><small>상품 정보</small></span>
+        </a>
+        <nav class="top-actions" aria-label="주요 메뉴">
+          <a class="nav-link current" href="/" aria-current="page" aria-label="매장 홈">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-7 9 7" /><path d="M5 10v10h14V10M9 20v-6h6v6" /></svg>
+            <span class="nav-label">홈</span>
+          </a>
+          <a class="nav-link" href="/store/orders" aria-label="주문 내역">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V5a2 2 0 0 1 2-2Z" /><path d="M9 8h6M9 12h6" /></svg>
+            <span class="nav-label">주문</span>
+          </a>
+          <a class="nav-link" href="/store/cart" aria-label="장바구니">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h2l2 10h10l2-7H7M9 20h.01M17 20h.01" /></svg>
+            <span class="nav-label">장바구니</span>
+            <span class="nav-count" id="cartCount">0</span>
+          </a>
+          <a class="nav-link role-switch" href="/farmer" aria-label="농가 작업장">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17c5-1 8-4 9-9 4 2 6 5 6 9-4 3-9 3-15 0Z" /><path d="M7 17c2-3 5-5 9-6" /></svg>
+            <span class="nav-label">농가</span>
+          </a>
+        </nav>
       </div>
     </header>
 
-    <main class="store-main" id="main">
-      <p style="text-align: center; color: var(--muted); padding: 40px 0">불러오는 중…</p>
+    <main class="store-main product-main" id="mainContent">
+      <div class="loading-state">
+        <div class="loading-state-inner"><div class="spinner" aria-hidden="true"></div><p>상품 정보를 불러오고 있습니다.</p></div>
+      </div>
     </main>
 
-    <div class="buy-bar" id="buyBar" hidden>
-      <div class="total" id="barPrice"></div>
-      <button class="btn secondary" id="addCart">장바구니</button>
-      <button class="btn" id="buyNow">바로 구매</button>
-    </div>
+    <aside class="buy-bar" id="buyBar" aria-label="구매하기" hidden>
+      <div class="buy-bar-inner">
+        <div class="total"><small>한 단위 가격</small><span id="barPrice"></span></div>
+        <div class="buy-actions">
+          <button class="btn secondary" id="addCart" type="button">장바구니</button>
+          <button class="btn" id="buyNow" type="button">바로 구매</button>
+        </div>
+      </div>
+    </aside>
 
     <script type="module">
       import { $, api, el, imageOf, money, INSPECTION_STEPS, inspectionLabel } from '/js/api.js';
@@ -35,97 +64,98 @@
 
       mountCartCount();
       const id = Number(new URLSearchParams(location.search).get('id'));
-      const main = $('#main');
+      const main = $('#mainContent');
 
       let listing = null;
       try {
         listing = (await api(`/api/store/listings/${id}`)).listing;
       } catch {
-        main.replaceChildren(el('p', { style: 'text-align:center;padding:40px 0', text: '상품을 찾을 수 없습니다.' }));
+        main.replaceChildren(
+          el('div', { class: 'empty-state' }, [
+            el('div', { class: 'empty-state-inner' }, [
+              el('span', { class: 'empty-state-icon', 'aria-hidden': 'true', html: '<svg class="ui-icon" viewBox="0 0 24 24"><path d="M5 5l14 14M9 5h8a2 2 0 0 1 2 2v8M15 19H7a2 2 0 0 1-2-2V9" /></svg>' }),
+              el('h2', { text: '상품을 찾을 수 없습니다.' }),
+              el('p', { text: '판매가 끝났거나 주소가 달라졌을 수 있습니다.' }),
+              el('a', { class: 'btn', href: '/', text: '매장으로 돌아가기' }),
+            ]),
+          ]),
+        );
       }
 
       if (listing) {
-        const ai = listing.ai_analysis ? JSON.parse(listing.ai_analysis) : null;
+        let ai = null;
+        try { ai = listing.ai_analysis ? JSON.parse(listing.ai_analysis) : null; } catch { ai = null; }
         const region = `${listing.region_sido} ${listing.region_sigungu}${listing.region_detail ? ` ${listing.region_detail}` : ''}`;
-
-        // ai_source 는 'cnn' / 'cnn+manual' / 'manual' / 'seed' 처럼 저장된다.
-        // manual 이 섞여 있으면 최종 품목은 농민이 고른 것이다.
-        const source = String(listing.ai_source ?? '');
-        const farmerPicked = source === 'manual' || source.endsWith('+manual');
-
+        const qualityStatus = listing.inspection_status === 'ready_to_ship' || listing.inspection_status === 'delivered'
+          ? 'hub_passed'
+          : listing.inspection_status;
+        const currentIndex = INSPECTION_STEPS.findIndex(([key]) => key === qualityStatus);
         const timeline = el(
           'div',
-          { class: 'timeline' },
-          INSPECTION_STEPS.map(([key, label], idx) => {
-            const currentIdx = INSPECTION_STEPS.findIndex(([k]) => k === listing.inspection_status);
-            const cls = idx < currentIdx ? 'step done' : idx === currentIdx ? 'step now' : 'step';
-            return el('span', { class: cls, text: label });
+          { class: 'timeline', 'aria-label': `현재 상태: ${inspectionLabel(qualityStatus)}` },
+          INSPECTION_STEPS.map(([, label], index) => {
+            const className = index < currentIndex ? 'step done' : index === currentIndex ? 'step now' : 'step';
+            return el('span', { class: className, text: label });
           }),
         );
 
+        const qualityBadge = listing.confirmed_quality
+          ? el('span', { class: 'badge badge-hub', text: `거점 확정 ${listing.confirmed_quality}` })
+          : el('span', { class: 'badge badge-hint', text: `AI 품질 참고 ${listing.quality_hint ?? '-'} · 확정 전` });
+
+        document.title = `ON-FARM · ${listing.title}`;
         main.replaceChildren(
-          el('img', { class: 'detail-image', src: imageOf(listing), alt: listing.title }),
-          el('div', { class: 'panel' }, [
-            el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px' }, [
-              // 품목을 누가 정했는지 그대로 밝힌다.
-              // 농민이 직접 고른 것을 'AI 확인'으로 표시하면 소비자를 오도한다.
-              farmerPicked
-                ? el('span', { class: 'badge badge-muted', text: `농민이 직접 선택: ${listing.product_name}` })
-                : el('span', { class: 'badge badge-ai', text: `AI 확인: ${listing.product_name}` }),
-              // 확정 등급이 있으면 그것을 앞세우고, AI 참고값은 참고값으로만 남긴다.
-              listing.confirmed_quality
-                ? el('span', { class: 'badge badge-hub', text: `거점 확정 등급: ${listing.confirmed_quality}` })
-                : el('span', { class: 'badge badge-hint', text: `AI 품질 참고: ${listing.quality_hint ?? '-'} (확정 전)` }),
-              el('span', { class: 'badge badge-hub', text: inspectionLabel(listing.inspection_status) }),
+          el('article', {}, [
+            el('div', { class: 'product-layout' }, [
+              el('div', { class: 'product-media' }, [
+                el('img', { class: 'detail-image', src: imageOf(listing), alt: listing.title }),
+              ]),
+              el('section', { class: 'product-summary', 'aria-labelledby': 'productTitle' }, [
+                el('p', { class: 'eyebrow', text: '산지 상품 정보' }),
+                el('div', { class: 'tag-row' }, [
+                  qualityBadge,
+                  el('span', { class: 'badge badge-ai', text: `사진 확인 ${listing.product_name}` }),
+                  el('span', { class: 'badge badge-muted', text: inspectionLabel(qualityStatus) }),
+                ]),
+                el('h1', { id: 'productTitle', text: listing.title }),
+                el('p', { class: 'product-origin', text: `${region} · ${listing.farm_name}` }),
+                el('div', { class: 'product-price', text: money(listing.unit_price) }),
+                el('div', { class: 'product-unit', text: `${listing.sku_label} · 남은 수량 ${listing.remaining_quantity}` }),
+                el('div', { class: 'timeline-label', text: '상품 품질 확인 진행' }),
+                timeline,
+              ]),
             ]),
-            el('h1', { style: 'margin:0 0 6px;font-size:22px;letter-spacing:-0.5px', text: listing.title }),
-            el('div', { style: 'font-size:15px;color:var(--muted)', text: `${region} · ${listing.farm_name}` }),
-            el('div', { style: 'font-size:28px;font-weight:900;margin-top:10px', text: money(listing.unit_price) }),
-            el('div', { style: 'font-size:14px;color:var(--muted)', text: `${listing.sku_label} · 남은 수량 ${listing.remaining_quantity}` }),
-            timeline,
-          ]),
-          el('div', { class: 'panel' }, [
-            el('h3', { text: farmerPicked ? '상품 소개 (자동 생성)' : '상품 소개 (AI 자동 생성)' }),
-            el('p', { style: 'white-space:pre-line;margin:0;font-size:15px;line-height:1.7', text: listing.description }),
-          ]),
-          el('div', { class: 'panel' }, [
-            el('h3', { text: '생산자 정보' }),
-            el('div', { class: 'trust-row' }, [el('span', { class: 'k', text: '생산자' }), el('span', { class: 'v', text: listing.farmer_name })]),
-            el('div', { class: 'trust-row' }, [el('span', { class: 'k', text: '농가' }), el('span', { class: 'v', text: listing.farm_name })]),
-            el('div', { class: 'trust-row' }, [el('span', { class: 'k', text: '생산지' }), el('span', { class: 'v', text: region })]),
-            el('div', { class: 'trust-row' }, [el('span', { class: 'k', text: '수확일' }), el('span', { class: 'v', text: listing.harvested_on ?? '-' })]),
-            el('div', { class: 'trust-row' }, [el('span', { class: 'k', text: '등록일' }), el('span', { class: 'v', text: listing.created_at })]),
-            el('div', { class: 'trust-row' }, [el('span', { class: 'k', text: '검수 거점' }), el('span', { class: 'v', text: listing.hub_name ?? '미지정' })]),
-          ]),
-          el('div', { class: 'panel' }, [
-            el('h3', { text: farmerPicked ? '품목 확인 방식' : 'AI 이미지 확인 결과' }),
-            el('div', { class: 'trust-row' }, [
-              el('span', { class: 'k', text: '판정 방식' }),
-              el('span', {
-                class: 'v',
-                text: source === 'seed'
-                  ? '시드 데이터'
-                  : farmerPicked
-                    ? (source === 'manual' ? '농민이 직접 선택' : `AI 제안 후 농민이 직접 선택 (${source.replace('+manual', '')})`)
-                    : source || '-',
-              }),
+            el('div', { class: 'product-details' }, [
+              el('section', { class: 'detail-section full' }, [
+                el('p', { class: 'eyebrow', text: '상품 이야기' }),
+                el('h2', { text: '농가가 전하는 상품 소개' }),
+                el('p', { class: 'detail-copy', text: listing.description }),
+              ]),
+              el('section', { class: 'detail-section' }, [
+                el('h2', { text: '생산자와 산지' }),
+                el('div', { class: 'trust-row' }, [el('span', { class: 'k', text: '생산자' }), el('span', { class: 'v', text: listing.farmer_name })]),
+                el('div', { class: 'trust-row' }, [el('span', { class: 'k', text: '농가' }), el('span', { class: 'v', text: listing.farm_name })]),
+                el('div', { class: 'trust-row' }, [el('span', { class: 'k', text: '생산지' }), el('span', { class: 'v', text: region })]),
+                el('div', { class: 'trust-row' }, [el('span', { class: 'k', text: '수확일' }), el('span', { class: 'v', text: listing.harvested_on ?? '-' })]),
+                el('div', { class: 'trust-row' }, [el('span', { class: 'k', text: '검수 거점' }), el('span', { class: 'v', text: listing.hub_name ?? '미지정' })]),
+              ]),
+              el('section', { class: 'detail-section' }, [
+                el('h2', { text: '사진 확인 정보' }),
+                el('div', { class: 'trust-row' }, [
+                  el('span', { class: 'k', text: '판정 방식' }),
+                  el('span', { class: 'v', text: ai?.source === 'seed' ? '시연용 데이터' : (ai?.source ?? listing.ai_source ?? '-') }),
+                ]),
+                el('div', { class: 'trust-row' }, [
+                  el('span', { class: 'k', text: '인식 신뢰도' }),
+                  el('span', { class: 'v', text: listing.ai_confidence ? `${Math.round(listing.ai_confidence * 100)}%` : '-' }),
+                ]),
+                el('div', { class: 'trust-row' }, [
+                  el('span', { class: 'k', text: '확인 근거' }),
+                  el('span', { class: 'v', text: (ai?.recognition?.description_basis ?? []).join(' / ') || '-' }),
+                ]),
+                el('p', { class: 'detail-note', text: 'AI는 품질 등급이나 식품 안전성을 확정하지 않습니다. 소비자에게 표시되는 최종 등급은 지역 거점의 실물 확인 결과입니다.' }),
+              ]),
             ]),
-            el('div', { class: 'trust-row' }, [
-              el('span', { class: 'k', text: farmerPicked ? 'AI 1순위 신뢰도' : '신뢰도' }),
-              el('span', {
-                class: 'v',
-                text: farmerPicked
-                  ? '해당 없음 (농민 선택)'
-                  : listing.ai_confidence
-                    ? `${Math.round(listing.ai_confidence * 100)}%`
-                    : '-',
-              }),
-            ]),
-            el('div', { class: 'trust-row' }, [
-              el('span', { class: 'k', text: '근거' }),
-              el('span', { class: 'v', style: 'font-weight:500;text-align:right', text: (ai?.recognition?.description_basis ?? []).join(' / ') || '-' }),
-            ]),
-            el('p', { style: 'font-size:13px;color:var(--muted);margin:10px 0 0', text: 'AI는 품질 등급을 확정하지 않으며 식품 안전성을 검사하지 않습니다. 최종 품질은 거점 실물 검수로 확정됩니다.' }),
           ]),
         );
 

@@ -3,56 +3,93 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>ON-FARM · 거점/관리자</title>
+    <meta name="theme-color" content="#00754a" />
+    <meta name="description" content="ON-FARM 지역 거점에서 입고, 실물 검수, 배송 상태를 처리하는 업무 화면" />
+    <title>ON-FARM · 지역 거점 작업대</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/img/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/css/base.css" />
     <link rel="stylesheet" href="/css/store.css" />
   </head>
-  <body class="store">
+  <body class="store hub-store">
+    <a class="skip-link" href="#mainContent">본문으로 바로가기</a>
+    <div class="mode-banner" id="modeBanner" hidden></div>
+
     <header class="store-top">
       <div class="row">
-        <a class="logo" href="/"><span class="dot"></span>ON-FARM 거점</a>
-        <div class="top-actions">
-          <span class="chip-link" id="who">-</span>
-          <a class="chip-link" href="/login">계정 바꾸기</a>
-        </div>
+        <a class="logo" href="/hub" aria-label="ON-FARM 지역 거점 작업대 홈">
+          <img src="/img/icon.svg" alt="" aria-hidden="true" />
+          <span class="logo-copy"><strong>ON-FARM</strong><small>지역 거점 작업대</small></span>
+        </a>
+        <nav class="top-actions" aria-label="계정 메뉴">
+          <span class="badge badge-muted" id="who">불러오는 중</span>
+          <a class="nav-link" href="/login" aria-label="계정 바꾸기">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M5.5 20c.6-4 2.8-6 6.5-6s5.9 2 6.5 6" /></svg>
+            <span class="nav-label">계정 바꾸기</span>
+          </a>
+        </nav>
       </div>
     </header>
 
-    <main class="store-main wrap-wide">
-      <div class="section-title">
-        <h2>지역 집하·검수 거점</h2>
-        <span>농가는 상품을 갖다 놓기만, 검수·물류·정산은 거점이</span>
-      </div>
+    <main class="store-main hub-main" id="mainContent">
+      <section class="hub-hero" aria-labelledby="hubTitle">
+        <div>
+          <p class="eyebrow">오늘의 거점 업무</p>
+          <h1 id="hubTitle">들어온 상품부터 차례로 처리하세요.</h1>
+          <p class="lead">AI 참고값과 실물 등급을 분리해 기록하고, 검수가 끝난 상품만 배송 단계로 넘깁니다.</p>
+        </div>
+        <div class="hub-shift"><span>현재 담당자</span><strong id="shiftName">확인 중</strong></div>
+      </section>
 
-      <div class="stat-row" id="stats"></div>
+      <section aria-label="업무 요약">
+        <div class="stat-row" id="stats"></div>
+      </section>
 
-      <div class="section-title"><h2>상품 처리 현황</h2><span id="count"></span></div>
-      <div class="table-wrap">
-        <table class="data">
-          <thead>
-            <tr>
-              <th>상품</th>
-              <th>농가</th>
-              <th>AI 참고 판정</th>
-              <th>수량</th>
-              <th>진행 상태</th>
-              <th>처리</th>
-            </tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
-
-      <p style="font-size: 13px; color: var(--muted); margin-top: 14px">
-        AI 참고 판정과 실물 검수 결과는 별도로 기록됩니다. 소비자에게 표시되는 확정 등급은 실물 검수 결과입니다.
-      </p>
+      <section class="hub-section" aria-labelledby="workTitle">
+        <div class="section-title">
+          <div><p class="eyebrow">처리 목록</p><h2 id="workTitle">상품 처리 현황</h2></div>
+          <span id="count"></span>
+        </div>
+        <div class="table-wrap" id="tableWrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>상품</th>
+                <th>농가</th>
+                <th>품질 판정</th>
+                <th>주문 수량</th>
+                <th>진행 상태</th>
+                <th>처리</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="hubEmpty" hidden>
+          <div class="empty-state-inner">
+            <span class="empty-state-icon" aria-hidden="true">
+              <svg class="ui-icon" viewBox="0 0 24 24"><path d="m7 12 3 3 7-7" /><circle cx="12" cy="12" r="9" /></svg>
+            </span>
+            <h2>처리할 상품이 없습니다.</h2>
+            <p>새 입고나 배송 상태 변경이 생기면 이곳에 표시됩니다.</p>
+          </div>
+        </div>
+        <p class="hub-note">AI 참고 판정과 실물 검수 결과는 별도로 기록됩니다. 소비자에게 표시되는 확정 등급은 담당자가 실물을 확인한 결과입니다.</p>
+      </section>
+      <section class="hub-section" id="settlementAdmin" aria-labelledby="settlementAdminTitle" hidden>
+        <div class="section-title">
+          <div><p class="eyebrow">관리자 전용</p><h2 id="settlementAdminTitle">정산 지급 관리</h2></div>
+          <span id="settlementCount"></span>
+        </div>
+        <div class="orders-list" id="settlementRows"></div>
+        <p class="hub-note">실제 계좌 이체가 끝난 뒤 지급 완료로 기록하세요.</p>
+      </section>
     </main>
 
     <script type="module">
-      import { $, api, el, money, toast, inspectionLabel } from '/js/api.js';
+      import { $, api, el, money, toast, fulfillmentLabel, mountModeBanner, startAutoRefresh } from '/js/api.js';
 
+      await mountModeBanner('#modeBanner');
       let session = null;
       try {
         session = await api('/api/me');
@@ -63,44 +100,60 @@
         location.href = '/login?role=hub_operator&next=/hub';
       }
       $('#who').textContent = session ? session.user.name : '';
+      $('#shiftName').textContent = session ? `${session.user.name}님 작업 중` : '담당자 확인 중';
+      const isAdmin = session?.user.role === 'admin';
 
       const STAT_LABELS = [
         ['incoming', '입고 예정'],
         ['needInspection', '검수 필요'],
-        ['readyToShip', '배송 예정'],
+        ['readyToShip', '배송 준비'],
+        ['shipping', '배송 중'],
         ['delivered', '배송 완료'],
-        ['soldOut', '판매 완료'],
       ];
-
       let grades = ['특', '상', '보통'];
+      let dashboardSignature = '';
 
-      async function load() {
+      async function load(force = false) {
+        if (!force && $('#rows').matches(':focus-within')) return;
         const data = await api('/api/hub/dashboard');
+        const signature = JSON.stringify(data);
+        if (signature === dashboardSignature) return;
         if (Array.isArray(data.grades)) grades = data.grades;
         const stats = $('#stats');
         stats.replaceChildren();
         for (const [key, label] of STAT_LABELS) {
+          const actionable = key === 'incoming' || key === 'needInspection';
           stats.append(
-            el('div', { class: 'stat' }, [
+            el('article', { class: `stat${actionable ? ' is-actionable' : ''}` }, [
               el('div', { class: 'label', text: label }),
               el('div', { class: 'value', text: String(data.counters[key] ?? 0) }),
             ]),
           );
         }
 
-        $('#count').textContent = `${data.listings.length}건`;
+        const helpCount = data.items.filter((item) => item.help_requested).length;
+        $('#count').textContent = `${data.items.length}건${helpCount ? ` · 도움 요청 ${helpCount}건` : ''}`;
+        $('#tableWrap').hidden = data.items.length === 0;
+        $('#hubEmpty').hidden = data.items.length > 0;
         const rows = $('#rows');
         rows.replaceChildren();
 
-        for (const l of data.listings) {
+        for (const item of data.items) {
           const actions = el('div', { class: 'inline-actions' });
-          if (l.inspection_status === 'ai_checked' || l.inspection_status === 'hub_pending') {
-            // 확정 등급은 담당자가 직접 고른다. AI 참고값을 기본 선택해 두면
-            // '실물 검수로 확정'이라는 설명과 달리 AI값이 그대로 확정돼 버린다.
+          if (item.has_rejection) {
+            actions.append(el('span', { class: 'badge badge-danger', text: '검수 반려' }));
+            if (item.help_requested) actions.append(el('span', { class: 'badge badge-hint', text: '소비자 도움 요청' }));
+          } else if (item.fulfillment_status === 'ready_for_hub') {
+            actions.append(el('button', {
+              class: 'go', type: 'button', text: '입고 확인',
+              'aria-label': `${item.title} 입고 확인`,
+              onclick: () => setStatus(item.id, 'hub_received'),
+            }));
+          } else if (item.fulfillment_status === 'hub_received') {
             const grade = el(
               'select',
-              { 'aria-label': '확정 등급' },
-              [el('option', { value: '', text: '등급 선택' }), ...grades.map((g) => el('option', { value: g, text: g }))],
+              { 'aria-label': `${item.title} 확정 등급` },
+              [el('option', { value: '', text: '등급 선택' }), ...grades.map((value) => el('option', { value, text: value }))],
             );
             actions.append(
               grade,
@@ -108,71 +161,144 @@
                 class: 'go', type: 'button', text: '검수 확정',
                 onclick: () => {
                   if (!grade.value) { toast('실물을 보고 확정 등급을 골라주세요.'); return; }
-                  const changed = grade.value !== l.quality_hint;
-                  inspect(l.id, changed ? 'downgrade' : 'pass', grade.value);
+                  const changed = grade.value !== item.quality_hint;
+                  inspect(item.id, changed ? 'downgrade' : 'pass', grade.value);
                 },
               }),
-              el('button', { class: 'warn', type: 'button', text: '반려', onclick: () => inspect(l.id, 'reject', null) }),
+              el('button', { class: 'warn', type: 'button', text: '반려', onclick: () => inspect(item.id, 'reject', null) }),
             );
-          } else if (l.inspection_status === 'hub_passed') {
-            actions.append(el('button', { class: 'go', type: 'button', text: '배송 준비', onclick: () => setStatus(l.id, 'ready_to_ship') }));
-          } else if (l.inspection_status === 'ready_to_ship') {
-            actions.append(el('button', { class: 'go', type: 'button', text: '배송 완료', onclick: () => setStatus(l.id, 'delivered') }));
+          } else if (item.fulfillment_status === 'hub_passed') {
+            actions.append(el('button', { class: 'go', type: 'button', text: '배송 시작', onclick: () => setStatus(item.id, 'ready_to_ship') }));
+          } else if (item.fulfillment_status === 'ready_to_ship') {
+            actions.append(el('button', { class: 'go', type: 'button', text: '배송 완료', onclick: () => setStatus(item.id, 'delivered') }));
           } else {
-            actions.append(el('span', { style: 'font-size:13px;color:var(--muted)', text: '처리 완료' }));
+            actions.append(el('span', { class: 'badge badge-muted', text: '처리 완료' }));
           }
 
           rows.append(
             el('tr', {}, [
-              el('td', {}, [
-                el('div', { style: 'font-weight:700', text: l.title }),
-                el('div', { style: 'font-size:12px;color:var(--muted)', text: `${l.sku_label} · ${money(l.unit_price)}` }),
+              el('td', { class: 'hub-cell hub-cell-product' }, [
+                el('div', { class: 'hub-cell-content' }, [
+                  el('div', { class: 'listing-primary', text: item.title }),
+                  el('div', { class: 'listing-secondary', text: `주문 ${item.order_no} · ${item.sku_label}` }),
+                ]),
               ]),
-              el('td', {}, [
-                el('div', { text: l.farm_name }),
-                el('div', { style: 'font-size:12px;color:var(--muted)', text: `${l.region_sigungu} · ${l.hub_name ?? '거점 미지정'}` }),
+              el('td', { class: 'hub-cell hub-cell-farm' }, [
+                el('div', { class: 'hub-cell-content' }, [
+                  el('div', { class: 'listing-primary', text: item.farm_name }),
+                  el('div', { class: 'listing-secondary', text: `${item.region_sigungu} · ${item.hub_name ?? '거점 미지정'}` }),
+                ]),
               ]),
-              el('td', {}, [
-                el('span', { class: 'badge badge-hint', text: `AI 참고 ${l.quality_hint ?? '-'}` }),
-                l.confirmed_quality
-                  ? el('div', { style: 'margin-top:4px' }, [
-                      el('span', { class: 'badge badge-ai', text: `확정 ${l.confirmed_quality}` }),
-                    ])
-                  : null,
-                el('div', { style: 'font-size:12px;color:var(--muted)', text: l.ai_confidence ? `신뢰도 ${Math.round(l.ai_confidence * 100)}%` : '' }),
+              el('td', { class: 'hub-cell hub-cell-quality' }, [
+                el('div', { class: 'hub-cell-content' }, [
+                  el('div', { class: 'quality-stack' }, [
+                    el('span', { class: 'badge badge-hint', text: `AI 참고 ${item.quality_hint ?? '-'}` }),
+                    item.confirmed_quality ? el('span', { class: 'badge badge-ai', text: `실물 확정 ${item.confirmed_quality}` }) : null,
+                    el('span', { class: 'listing-secondary', text: item.ai_confidence ? `인식 신뢰도 ${Math.round(item.ai_confidence * 100)}%` : '신뢰도 정보 없음' }),
+                  ]),
+                ]),
               ]),
-              el('td', { text: `${l.remaining_quantity} / ${l.quantity}` }),
-              el('td', {}, [el('span', { class: 'badge badge-hub', text: inspectionLabel(l.inspection_status) })]),
-              el('td', {}, [actions]),
+              el('td', { class: 'hub-cell hub-cell-quantity' }, [
+                el('div', { class: 'hub-cell-content hub-quantity-value', text: `${item.quantity} × ${item.sku_label}` }),
+              ]),
+              el('td', { class: 'hub-cell hub-cell-status' }, [
+                el('div', { class: 'hub-cell-content' }, [
+                  el('span', { class: item.has_rejection ? 'badge badge-danger' : 'badge badge-hub', text: item.has_rejection ? '검수 반려' : fulfillmentLabel(item.fulfillment_status) }),
+                ]),
+              ]),
+              el('td', { class: 'hub-cell hub-cell-actions' }, [
+                el('div', { class: 'hub-cell-content' }, [actions]),
+              ]),
             ]),
           );
         }
+        dashboardSignature = signature;
       }
 
-      async function inspect(listingId, result, gradedQuality) {
-        if (result === 'reject' && !confirm('반려하면 판매가 종료되고 매장에서 사라집니다. 계속할까요?')) return;
+      async function inspect(orderItemId, result, gradedQuality) {
+        let note = result === 'downgrade' ? '실물 검수 결과 등급 조정' : null;
+        if (result === 'reject') {
+          const entered = prompt('반려 사유를 입력해주세요. 농민과 소비자에게 전달됩니다. 개인정보는 적지 마세요.');
+          if (entered === null) return;
+          note = entered.trim();
+          if (!note) { toast('반려 사유를 입력해주세요.'); return; }
+          if (!confirm('반려하면 판매가 종료되고 매장에서 사라집니다. 계속할까요?')) return;
+        }
         try {
-          const body = { listingId, result };
+          const body = { orderItemId, result };
           if (gradedQuality) body.gradedQuality = gradedQuality;
-          if (result === 'downgrade') body.note = '실물 검수 결과 등급 조정';
+          if (note) body.note = note;
           await api('/api/hub/inspections', { body });
-          toast(result === 'reject' ? '반려 처리했습니다.' : `확정 등급 ${gradedQuality} 으로 기록했습니다.`);
-          await load();
-        } catch (err) {
-          toast(err.message);
+          toast(result === 'reject' ? '반려 처리했습니다.' : `확정 등급 ${gradedQuality}으로 기록했습니다.`);
+          await refreshHub();
+        } catch (error) {
+          toast(error.message);
         }
       }
 
-      async function setStatus(listingId, status) {
+      async function setStatus(orderItemId, status) {
         try {
-          await api(`/api/hub/listings/${listingId}/status`, { body: { status } });
-          await load();
-        } catch (err) {
-          toast(err.message);
+          await api(`/api/hub/order-items/${orderItemId}/status`, { body: { status } });
+          await refreshHub();
+        } catch (error) {
+          toast(error.message);
         }
       }
 
-      await load();
+      let refreshSettlements = () => loadSettlements(true);
+      async function loadSettlements(force = false) {
+        if (!isAdmin) return;
+        if (!force && $('#settlementRows').matches(':focus-within')) return;
+        const { settlements } = await api('/api/admin/settlements');
+        $('#settlementAdmin').hidden = false;
+        $('#settlementCount').textContent = `${settlements.length}건`;
+        const box = $('#settlementRows');
+        box.replaceChildren();
+        if (!settlements.length) {
+          box.append(el('div', { class: 'empty-state' }, [el('div', { class: 'empty-state-inner' }, [
+            el('h2', { text: '지급할 정산이 없습니다.' }),
+            el('p', { text: '배송 완료된 정산이 생기면 이곳에 표시됩니다.' }),
+          ])]));
+          return;
+        }
+        for (const row of settlements) {
+          const reference = el('input', { type: 'text', maxlength: '80', autocomplete: 'off', placeholder: '지급 참조 번호', 'aria-label': `${row.farm_name} 지급 참조 번호` });
+          const button = el('button', {
+            class: 'go', type: 'button', text: '지급 완료 기록',
+            onclick: async () => {
+              if (!reference.value.trim()) { toast('지급 참조 번호를 입력해주세요.'); reference.focus(); return; }
+              if (!confirm(`${row.farm_name} 정산 ${money(row.net)}을 지급 완료로 기록할까요? 실제 이체 후 처리해주세요.`)) return;
+              button.disabled = true;
+              try {
+                await api(`/api/admin/settlements/${row.id}/pay`, { body: { reference: reference.value.trim() } });
+                toast(`${money(row.net)} 지급 완료로 기록했습니다.`);
+                await refreshSettlements();
+              } catch (error) {
+                button.disabled = false;
+                toast(error.message);
+              }
+            },
+          });
+          box.append(el('article', { class: 'order-card' }, [
+            el('header', { class: 'order-card-head' }, [
+              el('div', {}, [el('div', { class: 'order-number', text: row.order_no }), el('strong', { text: row.farm_name })]),
+              el('span', { class: 'badge badge-hint', text: `${row.due_on} 지급 예정` }),
+            ]),
+            el('div', { class: 'order-lines' }, [el('div', { class: 'order-line' }, [
+              el('div', {}, [el('div', { class: 'order-line-title', text: row.title }), el('div', { class: 'order-line-status', text: `${row.quantity}개` })]),
+              el('strong', { text: money(row.net) }),
+            ])]),
+            el('footer', { class: 'order-total inline-actions' }, [reference, button]),
+          ]));
+        }
+      }
+
+      const refreshHub = startAutoRefresh(load);
+      await refreshHub();
+      if (isAdmin) {
+        refreshSettlements = startAutoRefresh(loadSettlements);
+        await refreshSettlements();
+      }
     </script>
   </body>
 </html>

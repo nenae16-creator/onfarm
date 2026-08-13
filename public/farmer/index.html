@@ -3,81 +3,246 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#1f7a3f" />
-    <title>ON-FARM · 판매 시작</title>
+    <meta name="theme-color" content="#00754a" />
+    <meta
+      name="description"
+      content="사진 한 장으로 농산물 판매를 시작하고 주문과 정산을 확인하는 ON-FARM 농가 작업장"
+    />
+    <title>ON-FARM · 농가 작업장</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/img/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/css/base.css" />
     <link rel="stylesheet" href="/css/farmer.css" />
   </head>
   <body class="farmer">
+    <a class="skip-link" href="#mainContent">본문으로 바로가기</a>
     <div class="mode-banner" id="modeBanner" hidden></div>
 
-    <header class="farmer-top">
-      <div class="who" id="who">
-        불러오는 중…
-        <small id="whoSub"></small>
+    <header class="farmer-top home-top">
+      <a class="brand-lockup" href="/farmer" aria-label="ON-FARM 농가 작업장 홈">
+        <img src="/img/icon.svg" alt="" aria-hidden="true" />
+        <span>
+          <strong>ON-FARM</strong>
+          <small>농가 작업장</small>
+        </span>
+      </a>
+
+      <div class="user-cluster">
+        <div class="who" id="who">
+          <strong id="whoName">불러오는 중</strong>
+          <small id="whoSub"></small>
+        </div>
+        <a class="account-link" href="/login">
+          <svg class="ui-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.5" />
+            <path d="M5.5 20c.6-4 2.8-6 6.5-6s5.9 2 6.5 6" />
+          </svg>
+          <span>계정</span>
+        </a>
       </div>
-      <a class="plain" href="/login">계정 바꾸기</a>
     </header>
 
-    <main class="farmer-main">
-      <h1>오늘 딴 것,<br />사진 한 장이면 됩니다.</h1>
-      <p class="lead">가격도 설명도 쓰지 않습니다. 수량만 확인하시면 됩니다.</p>
+    <main class="farmer-main home-main" id="mainContent">
+      <section class="home-intro" aria-labelledby="homeTitle">
+        <p class="eyebrow">오늘의 농장 일</p>
+        <h1 id="homeTitle"><span id="welcomeName">농민님,</span> <br />사진 한 장으로 판매를 시작하세요.</h1>
+        <p class="lead">가격과 상품 소개는 준비되어 있습니다. 사진을 찍고 수량만 확인하시면 됩니다.</p>
+      </section>
 
-      <button class="hero-action" id="startBtn">
-        <span class="icon" aria-hidden="true">📷</span>
-        사진 찍고 판매하기
-        <span class="sub">눌러서 사진을 찍거나 고르세요</span>
-      </button>
+      <div class="home-workspace">
+        <section class="sell-panel" aria-labelledby="sellPanelTitle">
+          <div class="section-heading compact-heading">
+            <div>
+              <p class="eyebrow">가장 먼저 할 일</p>
+              <h2 id="sellPanelTitle">오늘 수확한 것 올리기</h2>
+            </div>
+            <span class="section-status">약 1분</span>
+          </div>
 
-      <nav class="quick-grid">
-        <a href="/farmer/listings">
-          판매 중인 상품
-          <span class="count" id="cntListings">-</span>
-        </a>
-        <a href="/farmer/orders">
-          주문 확인
-          <span class="count" id="cntOrders">-</span>
-        </a>
-        <a href="/farmer/settlement">
-          정산 확인
-          <span class="count" id="cntSettle">-</span>
-        </a>
-        <a href="/">
-          내 상품 보기
-          <span class="count">소비자 화면</span>
-        </a>
-      </nav>
+          <button class="hero-action" id="startBtn">
+            <span class="hero-action-icon" aria-hidden="true">
+              <svg class="camera-glyph" viewBox="0 0 64 64" fill="none">
+                <path d="M20 19.5 24 13h16l4 6.5h7A5.5 5.5 0 0 1 56.5 25v22a5.5 5.5 0 0 1-5.5 5.5H13A5.5 5.5 0 0 1 7.5 47V25a5.5 5.5 0 0 1 5.5-5.5h7Z" />
+                <circle cx="32" cy="35.5" r="10.5" />
+                <path d="M48 27h.01" />
+              </svg>
+            </span>
+            <span class="hero-action-copy">
+              <strong>사진 찍고 판매 시작</strong>
+              <span>휴대폰에 있는 사진을 골라도 됩니다</span>
+            </span>
+            <svg class="hero-action-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="m9 5 7 7-7 7" />
+            </svg>
+          </button>
 
-      <p class="note">
-        AI는 사진을 보고 <b>품목</b>을 찾아 드립니다. 가격과 판매 단위는 <b>운영자가 미리 등록한 표준 가격</b>이며
-        AI가 정하지 않습니다. 표시되는 품질은 <b>참고 판정</b>이고, 최종 품질은 지역 거점의 실물 검수로 확정됩니다.
-      </p>
+          <ol class="sell-route" aria-label="판매 등록 순서">
+            <li><span>1</span>사진</li>
+            <li><span>2</span>품목 확인</li>
+            <li><span>3</span>수량 확인</li>
+          </ol>
+        </section>
+
+        <section class="task-panel" aria-labelledby="taskPanelTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">바로 확인</p>
+              <h2 id="taskPanelTitle">농장 현황</h2>
+            </div>
+            <span class="task-summary" id="taskSummary">불러오는 중</span>
+          </div>
+
+          <nav class="task-list" aria-label="농장 관리 메뉴">
+            <a class="task-link" href="/farmer/orders" id="orderCard">
+              <span class="task-icon" aria-hidden="true">
+                <svg class="ui-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V5a2 2 0 0 1 2-2Z" />
+                  <path d="M9 8h6M9 12h6" />
+                </svg>
+              </span>
+              <span class="task-copy">
+                <strong>주문 확인</strong>
+                <span class="task-meta" id="cntOrders">-</span>
+                <span class="order-flag" id="orderFlag" hidden></span>
+              </span>
+              <svg class="task-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="m9 5 7 7-7 7" />
+              </svg>
+            </a>
+
+            <a class="task-link" href="/farmer/listings">
+              <span class="task-icon" aria-hidden="true">
+                <svg class="ui-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="m4 7 8-4 8 4-8 4-8-4Z" />
+                  <path d="M4 7v10l8 4 8-4V7M12 11v10" />
+                </svg>
+              </span>
+              <span class="task-copy">
+                <strong>판매 상품</strong>
+                <span class="task-meta" id="cntListings">-</span>
+              </span>
+              <svg class="task-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="m9 5 7 7-7 7" />
+              </svg>
+            </a>
+
+            <a class="task-link" href="/farmer/settlement">
+              <span class="task-icon" aria-hidden="true">
+                <svg class="ui-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 7.5h16v11H4z" />
+                  <path d="M4 10.5h16M8 15h3" />
+                </svg>
+              </span>
+              <span class="task-copy">
+                <strong>정산 확인</strong>
+                <span class="task-meta" id="cntSettle">-</span>
+              </span>
+              <svg class="task-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="m9 5 7 7-7 7" />
+              </svg>
+            </a>
+
+            <a class="task-link" href="/">
+              <span class="task-icon" aria-hidden="true">
+                <svg class="ui-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 9h16l-1.5-5h-13L4 9Z" />
+                  <path d="M5.5 9v11h13V9M9 20v-6h6v6" />
+                </svg>
+              </span>
+              <span class="task-copy">
+                <strong>내 상품 보기</strong>
+                <span class="task-meta">소비자에게 보이는 화면</span>
+              </span>
+              <svg class="task-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="m9 5 7 7-7 7" />
+              </svg>
+            </a>
+          </nav>
+        </section>
+      </div>
+
+      <section class="trust-section" aria-labelledby="trustTitle">
+        <div class="section-heading trust-heading">
+          <div>
+            <p class="eyebrow">안심 안내</p>
+            <h2 id="trustTitle">AI는 판매를 돕기만 합니다.</h2>
+          </div>
+          <p>중요한 결정은 사람이 확인합니다.</p>
+        </div>
+        <ul class="trust-list">
+          <li>
+            <span class="trust-number" aria-hidden="true">01</span>
+            <div><strong>품목만 찾아드립니다</strong><span>사진에서 가장 비슷한 농산물을 제안합니다.</span></div>
+          </li>
+          <li>
+            <span class="trust-number" aria-hidden="true">02</span>
+            <div><strong>가격은 미리 정한 값입니다</strong><span>AI가 가격을 만들거나 바꾸지 않습니다.</span></div>
+          </li>
+          <li>
+            <span class="trust-number" aria-hidden="true">03</span>
+            <div><strong>품질은 거점에서 확인합니다</strong><span>최종 품질은 농산물을 직접 보고 확정합니다.</span></div>
+          </li>
+        </ul>
+      </section>
     </main>
 
+    <nav class="farmer-bottom-nav" aria-label="농가 주요 메뉴">
+      <a class="current" href="/farmer" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10M9 20v-6h6v6"/></svg><span>홈</span></a>
+      <a href="/farmer/sell"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h3l2-2h4l2 2h3a2 2 0 0 1 2 2v9H3V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3"/></svg><span>등록</span></a>
+      <a href="/farmer/listings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M7 4v4M12 10v4M17 16v4"/></svg><span>판매</span></a>
+      <a href="/farmer/orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V5a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg><span>주문</span></a>
+      <a href="/farmer/settlement"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M7.5 8.5 9.5 16l2.5-5 2.5 5 2-7.5"/></svg><span>정산</span></a>
+    </nav>
+
     <script type="module">
-      import { api, requireRole, mountModeBanner, $ } from '/js/api.js';
+      import { api, requireRole, mountModeBanner, $, startAutoRefresh } from '/js/api.js';
       import { speak } from '/js/speak.js';
 
       mountModeBanner('#modeBanner');
 
       const session = await requireRole('farmer');
       if (session) {
-        $('#who').childNodes[0].textContent = `${session.user.name}님 `;
+        $('#whoName').textContent = `${session.user.name}님`;
+        $('#welcomeName').textContent = `${session.user.name}님,`;
         $('#whoSub').textContent = session.farm
-          ? `${session.farm.farm_name} · ${session.farm.region_sido} ${session.farm.region_sigungu}`
-          : '';
+          ? `${session.farm.farm_name} · ${session.farm.region_sigungu}`
+          : '농가 정보 확인 중';
 
-        const [listings, orders, settle] = await Promise.all([
-          api('/api/farmer/listings').catch(() => ({ listings: [] })),
-          api('/api/farmer/orders').catch(() => ({ orders: [] })),
-          api('/api/farmer/settlements').catch(() => ({ summary: { pendingNet: 0 } })),
-        ]);
-        const active = listings.listings.filter((l) => l.status === 'active').length;
-        $('#cntListings').textContent = `${active}건`;
-        $('#cntOrders').textContent = `${orders.orders.length}건`;
-        $('#cntSettle').textContent = `${Number(settle.summary.pendingNet).toLocaleString('ko-KR')}원 예정`;
+        let dashboardSignature = '';
+        async function loadDashboard() {
+          const [listings, orders, settle] = await Promise.all([
+            api('/api/farmer/listings'),
+            api('/api/farmer/orders'),
+            api('/api/farmer/settlements'),
+          ]);
+          const active = listings.listings.filter((listing) => listing.status === 'active').length;
+          const pendingOrders = orders.orders.filter((order) => order.fulfillment_status === 'farmer_preparing' && !order.has_rejection);
+          const signature = `${active}:${orders.orders.length}:${pendingOrders.length}:${settle.summary.pendingNet}`;
+          if (signature === dashboardSignature) return;
+
+          $('#cntListings').textContent = `판매 중 ${active}건`;
+          $('#cntOrders').textContent = `전체 주문 ${orders.orders.length}건`;
+          $('#cntSettle').textContent = settle.summary.pendingNet > 0
+            ? `받을 돈 ${Number(settle.summary.pendingNet).toLocaleString('ko-KR')}원`
+            : settle.summary.processingNet > 0 ? '배송 완료 후 정산 예정' : '정산 내역 없음';
+
+          const orderCard = $('#orderCard');
+          const orderFlag = $('#orderFlag');
+          orderCard.classList.toggle('has-pending-orders', pendingOrders.length > 0);
+          orderFlag.hidden = pendingOrders.length === 0;
+          if (pendingOrders.length > 0) {
+            orderFlag.textContent = `준비할 주문 ${pendingOrders.length}건`;
+            $('#taskSummary').textContent = `준비 필요 ${pendingOrders.length}건`;
+            orderCard.setAttribute('aria-label', `주문 확인, 전체 ${orders.orders.length}건, 준비할 주문 ${pendingOrders.length}건`);
+          } else {
+            $('#taskSummary').textContent = '모두 확인했습니다';
+            orderCard.setAttribute('aria-label', `주문 확인, 전체 ${orders.orders.length}건`);
+          }
+          dashboardSignature = signature;
+        }
+
+        const refreshDashboard = startAutoRefresh(loadDashboard);
+        await refreshDashboard();
       }
 
       $('#startBtn').addEventListener('click', () => {

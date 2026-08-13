@@ -1,7 +1,13 @@
 import { findProductByCode, findSkuById } from '../../ai/sku-matcher.js';
 import { db } from '../../db/index.js';
-import { createListing, listByFarmer } from '../../domain/listings.js';
-import { listOrdersForFarmer } from '../../domain/orders.js';
+import {
+  addListingInventory,
+  createListing,
+  getListingView,
+  listByFarmer,
+  setFarmerListingStatus,
+} from '../../domain/listings.js';
+import { listOrdersForFarmer, markFarmerOrderReady } from '../../domain/orders.js';
 import { listSettlements, settlementSummary, DEMO_FEE_RATE } from '../../domain/settlements.js';
 import { farmOf } from '../../domain/users.js';
 import { todayKst } from '../../lib/datetime.js';
@@ -17,6 +23,11 @@ interface CreateListingBody {
   harvestedOn?: string;
   /** 사용자가 폴백에서 품목을 바꿨을 때 */
   productCode?: string;
+}
+
+interface ManageListingBody {
+  action?: string;
+  quantity?: number;
 }
 
 export function registerFarmerRoutes(router: Router): void {
@@ -152,9 +163,52 @@ export function registerFarmerRoutes(router: Router): void {
     ctx.json({ listings: listByFarmer(db(), user.id) });
   });
 
+  router.post('/api/farmer/listings/:id/manage', async (ctx) => {
+    const user = requireRole(ctx.user, 'farmer');
+    const id = Number(ctx.params['id']);
+    if (!Number.isInteger(id)) throw new HttpError(400, '잘못된 상품입니다.', 'bad_request');
+
+    const listing = getListingView(db(), id);
+    if (!listing || listing.farmer_id !== user.id) {
+      throw new HttpError(404, '상품을 찾을 수 없습니다.', 'not_found');
+    }
+    if (listing.inspection_status !== 'ai_checked' || listing.has_rejection) {
+      throw new HttpError(409, '주문 또는 거점 검수가 시작된 상품은 변경할 수 없습니다.', 'locked_listing');
+    }
+
+    const body = await ctx.body<ManageListingBody>();
+    let changed = false;
+    if (body.action === 'pause') {
+      changed = listing.status === 'active' && setFarmerListingStatus(db(), id, user.id, 'closed');
+    } else if (body.action === 'resume') {
+      changed = listing.status === 'closed' && setFarmerListingStatus(db(), id, user.id, 'active');
+    } else if (body.action === 'add_stock') {
+      const quantity = Number(body.quantity);
+      if (!Number.isInteger(quantity) || quantity < 1 || listing.quantity + quantity > 999) {
+        throw new HttpError(400, '추가 수량은 전체 999개 이하여야 합니다.', 'bad_quantity');
+      }
+      changed = addListingInventory(db(), id, user.id, quantity);
+    } else {
+      throw new HttpError(400, '지원하지 않는 관리 작업입니다.', 'bad_action');
+    }
+
+    if (!changed) throw new HttpError(409, '현재 상태에서는 처리할 수 없습니다.', 'bad_transition');
+    ctx.json({ listing: getListingView(db(), id) });
+  });
+
   router.get('/api/farmer/orders', (ctx) => {
     const user = requireRole(ctx.user, 'farmer');
     ctx.json({ orders: listOrdersForFarmer(db(), user.id) });
+  });
+
+  router.post('/api/farmer/order-items/:id/ready', (ctx) => {
+    const user = requireRole(ctx.user, 'farmer');
+    const id = Number(ctx.params['id']);
+    if (!Number.isInteger(id)) throw new HttpError(400, '잘못된 주문 상품입니다.', 'bad_request');
+    if (!markFarmerOrderReady(db(), id, user.id)) {
+      throw new HttpError(409, '이미 처리했거나 준비할 수 없는 주문입니다.', 'bad_transition');
+    }
+    ctx.json({ ok: true, status: 'ready_for_hub' });
   });
 
   router.get('/api/farmer/settlements', (ctx) => {

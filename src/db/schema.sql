@@ -109,10 +109,22 @@ CREATE TABLE IF NOT EXISTS order_items (
   farmer_id   INTEGER NOT NULL REFERENCES users(id),
   unit_price  INTEGER NOT NULL,
   quantity    INTEGER NOT NULL CHECK (quantity > 0),
-  amount      INTEGER NOT NULL
+  amount      INTEGER NOT NULL,
+  fulfillment_status TEXT NOT NULL DEFAULT 'farmer_preparing'
+                    CHECK (fulfillment_status IN (
+                      'farmer_preparing','ready_for_hub','hub_received',
+                      'hub_passed','ready_to_ship','delivered'
+                    ))
 );
 
 CREATE INDEX IF NOT EXISTS idx_order_items_farmer ON order_items(farmer_id);
+
+CREATE TABLE IF NOT EXISTS refund_help_requests (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_item_id INTEGER NOT NULL UNIQUE REFERENCES order_items(id),
+  consumer_id   INTEGER NOT NULL REFERENCES users(id),
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
 
 CREATE TABLE IF NOT EXISTS hub_inspections (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -134,6 +146,9 @@ CREATE TABLE IF NOT EXISTS settlements (
   net           INTEGER NOT NULL,
   status        TEXT NOT NULL DEFAULT 'pending'
                 CHECK (status IN ('pending','paid')),
+  due_on        TEXT,
+  paid_at       TEXT,
+  payment_reference TEXT,
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

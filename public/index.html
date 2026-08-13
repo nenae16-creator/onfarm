@@ -3,45 +3,132 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#1f7a3f" />
-    <meta name="description" content="ON-FARM — 농어민이 사진 한 장으로 올린 농산물을 산지에서 바로." />
-    <title>ON-FARM · 오늘 산지에서 올라온 농산물</title>
+    <meta name="theme-color" content="#00754a" />
+    <meta name="description" content="오늘 수확한 농산물을 지역 농가에서 만나보는 ON-FARM 산지 직송 매장" />
+    <title>ON-FARM · 오늘 수확한 농산물</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/img/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/css/base.css" />
     <link rel="stylesheet" href="/css/store.css" />
   </head>
-  <body class="store">
+  <body class="store store-consumer">
+    <a class="skip-link" href="#mainContent">본문으로 바로가기</a>
+
     <header class="store-top">
       <div class="row">
-        <a class="logo" href="/"><span class="dot"></span>ON-FARM</a>
-        <div class="top-actions">
-          <a class="chip-link" href="/store/orders">주문내역</a>
-          <a class="chip-link" href="/store/cart">장바구니 <span id="cartCount">0</span></a>
-          <a class="chip-link primary" href="/farmer">농민 화면</a>
-        </div>
+        <a class="logo" href="/" aria-label="ON-FARM 산지 직송 매장 홈">
+          <img src="/img/icon.svg" alt="" aria-hidden="true" />
+          <span class="logo-copy"><strong>ON-FARM</strong><small>산지 직송 매장</small></span>
+        </a>
+        <nav class="top-actions" aria-label="주요 메뉴">
+          <a class="nav-link current" href="/" aria-current="page" aria-label="매장 홈">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-7 9 7" /><path d="M5 10v10h14V10M9 20v-6h6v6" /></svg>
+            <span class="nav-label">홈</span>
+          </a>
+          <a class="nav-link" href="/store/orders" aria-label="주문 내역">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V5a2 2 0 0 1 2-2Z" />
+              <path d="M9 8h6M9 12h6" />
+            </svg>
+            <span class="nav-label">주문 내역</span>
+          </a>
+          <a class="nav-link" href="/store/cart" aria-label="장바구니">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 5h2l2 10h10l2-7H7M9 20h.01M17 20h.01" />
+            </svg>
+            <span class="nav-label">장바구니</span>
+            <span class="nav-count" id="cartCount">0</span>
+          </a>
+          <a class="nav-link role-switch" href="/farmer" aria-label="농가 작업장">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17c5-1 8-4 9-9 4 2 6 5 6 9-4 3-9 3-15 0Z" /><path d="M7 17c2-3 5-5 9-6" /></svg>
+            <span class="nav-label">농가</span>
+          </a>
+        </nav>
       </div>
     </header>
 
-    <main class="store-main">
-      <section class="hero">
-        <h1>오늘 산지에서 올라온 농산물</h1>
-        <p>
-          농가에서 사진 한 장으로 올린 상품입니다. 표시된 품질은 사진 기반 참고 판정이고,
-          최종 품질은 지역 거점의 실물 검수로 확정됩니다.
-        </p>
+    <main class="store-main" id="mainContent">
+      <section class="market-hero" aria-labelledby="marketTitle">
+        <div>
+          <p class="eyebrow">오늘의 산지 장터</p>
+          <h1 id="marketTitle">수확한 곳과 사람이 보이는 먹거리</h1>
+          <p class="hero-lead">
+            농가가 직접 올린 사진과 지역 거점의 실물 확인 정보를 함께 보여드립니다.
+            필요한 농산물을 이름이나 농가로 찾아보세요.
+          </p>
+          <form class="hero-search" id="searchForm" role="search">
+            <label class="search-field">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5" />
+                <path d="m16 16 4 4" />
+              </svg>
+              <span class="visually-hidden">농산물 검색</span>
+              <input id="searchInput" type="search" placeholder="배, 감자, 농가 이름 검색" autocomplete="off" />
+            </label>
+            <button type="submit">찾기</button>
+          </form>
+        </div>
+
+        <div class="hero-art" aria-hidden="true">
+          <svg viewBox="0 0 420 330" fill="none">
+            <path d="M45 250c66-46 130-69 192-69 54 0 105 17 151 50" stroke="currentColor" stroke-width="3" opacity=".42" />
+            <path d="M56 278c74-43 144-65 211-65 42 0 82 9 121 27" stroke="currentColor" stroke-width="3" opacity=".26" />
+            <path d="M112 203h186l-20 92H132l-20-92Z" fill="#F2E6BE" fill-opacity=".16" stroke="currentColor" stroke-width="4" />
+            <path d="M151 202c5-53 26-83 63-90 38 9 60 38 65 90" stroke="currentColor" stroke-width="5" />
+            <path d="M151 230h127M143 260h141M178 202l6 93M231 202l-3 93" stroke="currentColor" stroke-width="3" opacity=".68" />
+            <circle cx="155" cy="166" r="28" fill="#C96B3D" />
+            <circle cx="205" cy="150" r="34" fill="#D6B85D" />
+            <circle cx="260" cy="170" r="31" fill="#7FAC67" />
+            <path d="M156 137c4-17 15-25 31-25-5 16-15 25-31 25ZM205 115c6-17 18-25 35-22-7 15-19 23-35 22ZM260 137c9-15 22-20 38-14-10 13-22 18-38 14Z" fill="#BFD7A4" />
+          </svg>
+          <div class="hero-note"><strong>농가 사진 그대로</strong><span>최종 품질은 지역 거점이 실물로 확인합니다.</span></div>
+        </div>
       </section>
 
-      <div class="filters" id="filters"></div>
+      <section class="trust-strip" aria-label="ON-FARM 구매 원칙">
+        <div class="trust-point">
+          <span class="trust-point-icon" aria-hidden="true">
+            <svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 17c5-1 8-4 9-9 4 2 6 5 6 9-4 3-9 3-15 0Z" /><path d="M7 17c2-3 5-5 9-6" /></svg>
+          </span>
+          <div><strong>생산지 공개</strong><span>농가와 수확 지역을 상품마다 확인합니다.</span></div>
+        </div>
+        <div class="trust-point">
+          <span class="trust-point-icon" aria-hidden="true">
+            <svg class="ui-icon" viewBox="0 0 24 24"><path d="m7 12 3 3 7-7" /><circle cx="12" cy="12" r="9" /></svg>
+          </span>
+          <div><strong>사람이 최종 확인</strong><span>AI는 참고하고, 실물 등급은 거점이 확정합니다.</span></div>
+        </div>
+        <div class="trust-point">
+          <span class="trust-point-icon" aria-hidden="true">
+            <svg class="ui-icon" viewBox="0 0 24 24"><path d="M3 7h12v10H3zM15 10h3l3 3v4h-6z" /><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" /></svg>
+          </span>
+          <div><strong>지역 거점 배송</strong><span>검수와 포장, 배송 상태를 한 흐름으로 관리합니다.</span></div>
+        </div>
+      </section>
 
-      <div class="section-title">
-        <h2 id="listTitle">오늘 올라온 농산물</h2>
-        <span id="listCount"></span>
-      </div>
-      <div class="card-grid" id="grid"></div>
-      <p class="empty" id="empty" hidden style="text-align: center; color: var(--muted); padding: 40px 0">
-        조건에 맞는 상품이 없습니다.
-      </p>
+      <section aria-labelledby="filterTitle">
+        <div class="section-heading">
+          <div><p class="eyebrow">빠른 탐색</p><h2 id="filterTitle">지역과 품목으로 고르기</h2></div>
+        </div>
+        <div class="filters" id="filters" aria-label="상품 필터"></div>
+      </section>
+
+      <section aria-labelledby="listTitle">
+        <div class="section-title">
+          <h2 id="listTitle">오늘 올라온 농산물</h2>
+          <span id="listCount" aria-live="polite"></span>
+        </div>
+        <div class="card-grid" id="grid"></div>
+        <div class="empty-state" id="empty" hidden>
+          <div class="empty-state-inner">
+            <span class="empty-state-icon" aria-hidden="true">
+              <svg class="ui-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
+            </span>
+            <h3>조건에 맞는 상품이 없습니다.</h3>
+            <p>검색어를 줄이거나 전체 필터를 눌러 다시 확인해 주세요.</p>
+          </div>
+        </div>
+      </section>
     </main>
 
     <script type="module" src="/js/store.js"></script>

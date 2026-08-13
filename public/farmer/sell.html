@@ -3,42 +3,80 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#1f7a3f" />
-    <title>ON-FARM · 사진 찍고 판매하기</title>
+    <meta name="theme-color" content="#00754a" />
+    <meta name="description" content="사진을 찍고 품목과 수량만 확인하는 ON-FARM 농산물 판매 등록" />
+    <title>ON-FARM · 사진으로 판매 등록</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/img/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/css/base.css" />
     <link rel="stylesheet" href="/css/farmer.css" />
   </head>
   <body class="farmer">
+    <a class="skip-link" href="#mainContent">본문으로 바로가기</a>
     <div class="mode-banner" id="modeBanner" hidden></div>
 
-    <header class="farmer-top">
-      <button class="plain" id="backBtn" style="background: none; cursor: pointer">← 뒤로</button>
-      <div class="who" style="text-align: right">
-        판매 등록
+    <header class="farmer-top subpage-top">
+      <button class="back-link" id="backBtn" type="button">
+        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m14 5-7 7 7 7" />
+        </svg>
+        <span>뒤로</span>
+      </button>
+      <div class="page-context">
+        <strong>판매 등록</strong>
         <small id="whoSub"></small>
       </div>
     </header>
 
-    <main class="farmer-main">
-      <div class="step-dots" id="dots" aria-hidden="true">
-        <span class="on"></span><span></span><span></span><span></span>
+    <main class="farmer-main sell-main" id="mainContent">
+      <div
+        class="sell-progress progress-25"
+        id="sellProgress"
+        role="progressbar"
+        aria-label="판매 등록 진행 단계"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="25"
+      >
+        <div class="progress-meta">
+          <span id="progressStep">1 / 4</span>
+          <strong id="progressLabel">사진 올리기</strong>
+        </div>
+        <div class="progress-track" aria-hidden="true"><span class="progress-fill"></span></div>
       </div>
 
       <!-- ① 사진 -->
-      <section id="stepPhoto">
-        <h1>수확한 것을 찍어 주세요.</h1>
-        <!--
-          "가까이서 크게" 는 예의상 하는 말이 아니라 측정에서 나온 조건이다.
-          농산물이 화면을 꽉 채우면 5품목 전부 100% 로 맞히고,
-          화면의 4분의 1만 차지하면 감자는 후보 3개 안에도 들어오지 못한다.
-        -->
-        <p class="lead">한 상자를 화면에 <b>꽉 차게</b>, 가운데 두고 찍어 주세요.</p>
-        <label class="photo-drop" for="photoInput" style="display: block; cursor: pointer">
-          <div style="font-size: 64px; line-height: 1">📷</div>
-          <div style="font-size: 22px; font-weight: 800; margin-top: 8px">사진 찍기 / 고르기</div>
-          <div class="note" style="margin-top: 4px">사진은 자동으로 줄여서 올립니다.</div>
+      <section class="sell-step" id="stepPhoto">
+        <div class="step-heading">
+          <p class="eyebrow">사진 한 장</p>
+          <h1>수확한 농산물을 찍어 주세요.</h1>
+          <!--
+            "화면에 꽉 차게" 는 예의상 하는 말이 아니라 측정에서 나온 조건이다.
+            농산물이 화면을 꽉 채우면 5품목 전부 100% 로 맞히지만,
+            화면의 4분의 1만 차지하면 감자는 후보 3개 안에도 들어오지 못한다.
+            docs/DATA_SOURCES.md 부록 참고.
+          -->
+          <p class="lead">농산물이 화면에 <b>꽉 차게</b>, 가운데 두고 찍어 주세요.</p>
+        </div>
+
+        <label class="photo-drop" for="photoInput">
+          <span class="photo-drop-icon" aria-hidden="true">
+            <svg class="camera-glyph" viewBox="0 0 64 64" fill="none">
+              <path d="M20 19.5 24 13h16l4 6.5h7A5.5 5.5 0 0 1 56.5 25v22a5.5 5.5 0 0 1-5.5 5.5H13A5.5 5.5 0 0 1 7.5 47V25a5.5 5.5 0 0 1 5.5-5.5h7Z" />
+              <circle cx="32" cy="35.5" r="10.5" />
+              <path d="M48 27h.01" />
+            </svg>
+          </span>
+          <strong>사진 찍기 또는 고르기</strong>
+          <span>상자·망·봉이 화면을 꽉 채우게 찍어 주세요</span>
+          <small>
+            <svg class="ui-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+              <rect x="5" y="11" width="14" height="10" rx="2" />
+              <path d="M12 15v2" />
+            </svg>
+            사진은 크기를 줄여 안전하게 전송합니다
+          </small>
         </label>
         <input
           type="file"
@@ -48,129 +86,207 @@
           class="visually-hidden"
         />
         <div class="button-row">
-          <button class="big-button secondary" id="sampleBtn">사진 없이 먼저 해보기(시연용)</button>
+          <button class="big-button secondary" id="sampleBtn" type="button">사진 없이 시연해 보기</button>
         </div>
       </section>
 
       <!-- ② 분석 중 -->
-      <section id="stepLoading" hidden>
-        <div class="card" style="text-align: center; padding: 40px 20px">
-          <div class="spinner" style="margin: 0 auto 18px"></div>
-          <h2 style="margin-bottom: 6px">AI가 농산물을 확인하고 있습니다</h2>
-          <p class="note" style="margin: 0">잠시만 기다려 주세요.</p>
+      <section class="sell-step" id="stepLoading" hidden>
+        <div class="card analysis-card" aria-live="polite" aria-busy="true">
+          <div class="analysis-orb" role="img" aria-label="사진 분석 중">
+            <span class="analysis-orb-part orb-left"></span>
+            <span class="analysis-orb-part orb-core"></span>
+            <span class="analysis-orb-part orb-right"></span>
+          </div>
+          <p class="eyebrow">사진 확인 중</p>
+          <h1>사진을 살펴보고 있어요.</h1>
+          <p class="note">농산물 종류와 판매 단위를 확인하고 있습니다.</p>
         </div>
-        <img id="loadingPreview" class="photo-preview" style="margin-top: 16px" alt="" hidden />
+        <img
+          id="loadingPreview"
+          class="photo-preview loading-preview"
+          alt="분석 중인 농산물 사진"
+          hidden
+        />
       </section>
 
-      <!-- ③ AI 결과 — 항상 번호로 고르게 한다 -->
-      <section id="stepResult" hidden>
-        <img id="resultImage" class="photo-preview" alt="촬영한 농산물 사진" />
-        <h1 id="resultHeadline" style="font-size: 27px; margin: 16px 0 4px">
-          이 중에 어느 것인가요?
-        </h1>
-        <p class="result-sub" id="resultSub" style="margin: 0 0 14px"></p>
+      <!-- ③ AI 결과 -->
+      <section class="sell-step" id="stepResult" hidden>
+        <img id="resultImage" class="photo-preview result-photo" alt="촬영한 농산물 사진" />
+        <div class="step-heading result-heading">
+          <p class="eyebrow">품목 확인</p>
+          <h1 id="resultHeadline">어느 농산물인가요?</h1>
+          <p class="lead" id="resultSub"></p>
+        </div>
 
         <div class="choice-grid" id="candidateGrid"></div>
 
-        <div class="button-row">
-          <button class="big-button ghost" id="resultNo">여기 없어요, 직접 고를래요</button>
-          <button class="big-button ghost" id="resultRetake">사진 다시 찍기</button>
+        <div class="button-row split-actions">
+          <button class="big-button ghost" id="resultNo" type="button">목록에서 직접 고르기</button>
+          <button class="big-button ghost" id="resultRetake" type="button">사진 다시 찍기</button>
         </div>
 
-        <div class="card" style="margin-top: 16px">
-          <div style="display: flex; gap: 6px; flex-wrap: wrap">
+        <aside class="ai-explain" aria-label="AI 확인 근거">
+          <div class="badge-row">
             <span class="badge badge-ai" id="badgeSource">AI 확인</span>
             <span class="badge badge-hint" id="badgeQuality">AI 품질 참고</span>
             <span class="badge badge-muted" id="badgeConfidence"></span>
           </div>
           <p class="note" id="resultBasis"></p>
-          <button class="speak-button" id="speakResult" style="margin-top: 12px">🔊 다시 듣기</button>
-        </div>
+          <button class="speak-button" id="speakResult" type="button">
+            <svg class="ui-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 10v4h4l5 4V6L8 10H4Z" />
+              <path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" />
+            </svg>
+            다시 듣기
+          </button>
+        </aside>
       </section>
 
       <!-- ③-C 전체 품목 직접 선택 -->
-      <section id="stepManual" hidden>
-        <h1 style="font-size: 26px">무엇을 파실까요?</h1>
-        <p class="lead">눌러서 고르세요.</p>
+      <section class="sell-step" id="stepManual" hidden>
+        <div class="step-heading">
+          <p class="eyebrow">직접 선택</p>
+          <h1>무엇을 파실까요?</h1>
+          <p class="lead">농산물 이름을 눌러 주세요.</p>
+        </div>
         <div class="choice-grid compact" id="manualGrid"></div>
         <div class="button-row">
-          <button class="big-button ghost" id="manualRetake">사진 다시 찍기</button>
+          <button class="big-button ghost" id="manualRetake" type="button">사진 다시 찍기</button>
         </div>
       </section>
 
       <!-- ④ 판매 단위 + 수량 -->
-      <section id="stepSku" hidden>
-        <h1 id="skuTitle" style="font-size: 28px">배로 확인했습니다.</h1>
-        <div class="card">
-          <div id="skuOptions" class="choice-grid"></div>
+      <section class="sell-step" id="stepSku" hidden>
+        <div class="step-heading">
+          <p class="eyebrow">단위와 수량</p>
+          <h1 id="skuTitle">배로 확인했습니다.</h1>
+          <p class="lead">판매 단위를 고르고 수량을 확인해 주세요.</p>
+        </div>
+
+        <div class="card sku-card">
+          <div id="skuOptions" class="choice-grid sku-options"></div>
+
           <div class="price-block">
             <div class="unit" id="skuUnitLabel">5kg 한 상자</div>
             <p class="price" id="skuPrice">29,000원</p>
-            <p class="note" style="margin: 4px 0 0; text-align: center">
-              이 가격은 <b>운영자가 미리 정해 둔 표준 가격</b>입니다. AI가 정한 값이 아닙니다.
+            <p class="price-note">
+              운영자가 미리 정한 표준 가격입니다.<br />AI가 가격을 정하지 않습니다.
             </p>
           </div>
-          <h2 style="text-align: center; margin: 18px 0 0; font-size: 22px">몇 상자 파실까요?</h2>
-          <div class="stepper">
-            <button id="qtyMinus" aria-label="수량 줄이기">−</button>
-            <div class="value">
-              <span id="qtyValue">5</span>
-              <small id="qtyUnitWord">상자</small>
+
+          <div class="quantity-section">
+            <h2 id="qtyQuestion">몇 상자 파실까요?</h2>
+            <div
+              class="quantity-visual"
+              id="quantityVisual"
+              role="img"
+              aria-live="polite"
+              aria-label="선택한 수량: 5상자"
+            >
+              <div class="quantity-pack" id="quantityPack" aria-hidden="true"></div>
+              <p id="quantityCaption">5상자 선택</p>
             </div>
-            <button id="qtyPlus" aria-label="수량 늘리기">+</button>
-          </div>
-          <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 6px">
-            <button class="speak-button" id="speakSku">🔊 다시 듣기</button>
-            <button class="speak-button" id="voiceQty" hidden>🎤 말로 수량 말하기</button>
+            <div class="stepper">
+              <button id="qtyMinus" type="button" aria-label="수량 줄이기">−</button>
+              <div class="value" aria-live="polite">
+                <span id="qtyValue">5</span>
+                <small id="qtyUnitWord">상자</small>
+              </div>
+              <button id="qtyPlus" type="button" aria-label="수량 늘리기">+</button>
+            </div>
+            <div class="assist-actions">
+              <button class="speak-button" id="speakSku" type="button">
+                <svg class="ui-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 10v4h4l5 4V6L8 10H4Z" />
+                  <path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" />
+                </svg>
+                다시 듣기
+              </button>
+              <button class="speak-button" id="voiceQty" type="button" hidden>
+                <svg class="ui-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="9" y="3" width="6" height="11" rx="3" />
+                  <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6" />
+                </svg>
+                <span id="voiceQtyLabel">말로 수량 말하기</span>
+              </button>
+            </div>
           </div>
         </div>
         <div class="button-row">
-          <button class="big-button" id="skuNext">맞아요, 판매할게요</button>
+          <button class="big-button" id="skuNext" type="button">수량 확인하고 계속</button>
         </div>
       </section>
 
       <!-- ⑤ 최종 확인 -->
-      <section id="stepConfirm" hidden>
-        <h1 style="font-size: 26px">이대로 올릴까요?</h1>
-        <div class="card">
-          <img id="confirmImage" class="photo-preview" alt="" style="margin-bottom: 14px" />
-          <div class="kv"><span class="k">품목</span><span class="v" id="cfProduct"></span></div>
-          <div class="kv"><span class="k">판매 단위</span><span class="v" id="cfSku"></span></div>
-          <div class="kv"><span class="k">한 상자 값</span><span class="v" id="cfPrice"></span></div>
-          <div class="kv"><span class="k">수량</span><span class="v" id="cfQty"></span></div>
-          <div class="kv">
-            <span class="k">모두 팔리면</span><span class="v" id="cfTotal" style="font-size: 22px"></span>
-          </div>
+      <section class="sell-step" id="stepConfirm" hidden>
+        <div class="step-heading">
+          <p class="eyebrow">마지막 확인</p>
+          <h1>이대로 판매를 시작할까요?</h1>
+          <p class="lead">내용이 맞으면 아래 판매 등록 버튼을 눌러 주세요.</p>
         </div>
-        <div class="card">
-          <h2 style="font-size: 19px; margin-bottom: 8px">이렇게 소개됩니다</h2>
-          <p style="font-size: 19px; font-weight: 800; margin: 0 0 8px" id="cfTitle"></p>
-          <p class="note" id="cfDescription" style="white-space: pre-line; margin: 0"></p>
+
+        <div class="card confirm-card">
+          <img id="confirmImage" class="photo-preview confirm-photo" alt="판매 등록할 농산물 사진" />
+          <dl class="confirm-list">
+            <div class="kv"><dt class="k">품목</dt><dd class="v" id="cfProduct"></dd></div>
+            <div class="kv"><dt class="k">판매 단위</dt><dd class="v" id="cfSku"></dd></div>
+            <div class="kv">
+              <dt class="k" id="cfUnitPriceLabel">한 상자 값</dt><dd class="v" id="cfPrice"></dd>
+            </div>
+            <div class="kv"><dt class="k">수량</dt><dd class="v" id="cfQty"></dd></div>
+            <div class="kv total-row">
+              <dt class="k">모두 팔리면</dt><dd class="v" id="cfTotal"></dd>
+            </div>
+          </dl>
         </div>
+
+        <aside class="listing-preview">
+          <p class="eyebrow">소비자에게 보이는 소개</p>
+          <h2 id="cfTitle"></h2>
+          <p class="note" id="cfDescription"></p>
+        </aside>
+
         <div class="button-row">
-          <button class="big-button" id="submitBtn">판매 등록</button>
-          <button class="big-button ghost" id="confirmBack">수량 다시 고르기</button>
+          <button class="big-button" id="submitBtn" type="button">판매 등록</button>
+          <button class="big-button ghost" id="confirmBack" type="button">수량 다시 고르기</button>
         </div>
       </section>
 
       <!-- ⑥ 완료 -->
-      <section id="stepDone" hidden>
+      <section class="sell-step" id="stepDone" hidden>
         <div class="success-hero">
-          <div class="mark">✅</div>
-          <h1 style="font-size: 28px">판매가 시작됐습니다.</h1>
+          <div class="mark" role="img" aria-label="판매 등록 완료">
+            <svg class="success-mark" viewBox="0 0 80 80" fill="none">
+              <circle class="success-ring" cx="40" cy="40" r="30" pathLength="1" />
+              <path class="success-check" d="m25 41 10 10 21-23" pathLength="1" />
+            </svg>
+          </div>
+          <p class="eyebrow">등록 완료</p>
+          <h1>판매가 시작됐습니다.</h1>
           <p class="lead" id="doneSummary"></p>
         </div>
-        <div class="card">
-          <div class="kv"><span class="k">다음 순서</span><span class="v">주문이 들어오면 알려드립니다</span></div>
-          <div class="kv"><span class="k">그다음</span><span class="v" id="doneHub">지역 거점에 갖다 놓으면 끝</span></div>
+
+        <div class="next-steps" aria-label="판매 등록 후 순서">
+          <div><span>1</span><p><strong>주문을 기다립니다</strong><small>주문이 들어오면 바로 알려드립니다.</small></p></div>
+          <div><span>2</span><p><strong>거점에 가져갑니다</strong><small id="doneHub">주문이 모이면 지역 거점에서 확인합니다.</small></p></div>
         </div>
+
         <div class="button-row">
-          <button class="big-button" id="doneStore">소비자 화면에서 보기</button>
-          <button class="big-button secondary" id="doneAgain">하나 더 올리기</button>
-          <button class="big-button ghost" id="doneHome">처음으로</button>
+          <button class="big-button" id="doneHome" type="button">농가 작업장으로</button>
+          <button class="big-button secondary" id="doneAgain" type="button">하나 더 올리기</button>
+          <button class="big-button ghost" id="doneStore" type="button">등록한 상품 보기</button>
         </div>
       </section>
     </main>
+
+    <nav class="farmer-bottom-nav" aria-label="농가 주요 메뉴">
+      <a href="/farmer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10M9 20v-6h6v6"/></svg><span>홈</span></a>
+      <a class="current" href="/farmer/sell" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h3l2-2h4l2 2h3a2 2 0 0 1 2 2v9H3V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3"/></svg><span>등록</span></a>
+      <a href="/farmer/listings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M7 4v4M12 10v4M17 16v4"/></svg><span>판매</span></a>
+      <a href="/farmer/orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V5a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg><span>주문</span></a>
+      <a href="/farmer/settlement"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M7.5 8.5 9.5 16l2.5-5 2.5 5 2-7.5"/></svg><span>정산</span></a>
+    </nav>
 
     <script type="module" src="/js/farmer-sell.js"></script>
   </body>

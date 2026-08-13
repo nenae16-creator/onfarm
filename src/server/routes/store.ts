@@ -1,6 +1,12 @@
 import { db } from '../../db/index.js';
 import { getListingView, listStoreListings } from '../../domain/listings.js';
-import { createOrder, listOrdersForConsumer, OrderError } from '../../domain/orders.js';
+import {
+  createOrder,
+  lastDeliveryForConsumer,
+  listOrdersForConsumer,
+  OrderError,
+  requestRefundHelp,
+} from '../../domain/orders.js';
 import { HttpError } from '../../lib/http.js';
 import type { Router } from '../../lib/http.js';
 import { requireRole } from '../../lib/session.js';
@@ -54,7 +60,7 @@ export function registerStoreRoutes(router: Router): void {
         consumerId: user.id,
         lines,
         receiverName: text(body.receiverName, user.name).slice(0, 60),
-        receiverPhone: text(body.receiverPhone, '010-0000-0000').slice(0, 30),
+        receiverPhone: text(body.receiverPhone, user.phone ?? '').slice(0, 30),
         address: text(body.address).slice(0, 200),
         ...(typeof body.memo === 'string' ? { memo: body.memo.slice(0, 200) } : {}),
       });
@@ -71,5 +77,20 @@ export function registerStoreRoutes(router: Router): void {
   router.get('/api/store/orders', (ctx) => {
     const user = requireRole(ctx.user, 'consumer');
     ctx.json({ orders: listOrdersForConsumer(db(), user.id) });
+  });
+
+  router.get('/api/store/delivery-profile', (ctx) => {
+    const user = requireRole(ctx.user, 'consumer');
+    ctx.json({ delivery: lastDeliveryForConsumer(db(), user.id) });
+  });
+
+  router.post('/api/store/order-items/:id/help-request', (ctx) => {
+    const user = requireRole(ctx.user, 'consumer');
+    const id = Number(ctx.params['id']);
+    if (!Number.isInteger(id)) throw new HttpError(400, '잘못된 주문 상품입니다.', 'bad_request');
+    const result = requestRefundHelp(db(), id, user.id);
+    if (result === 'not_found') throw new HttpError(404, '주문 상품을 찾을 수 없습니다.', 'not_found');
+    if (result === 'not_rejected') throw new HttpError(409, '반려된 상품만 도움을 요청할 수 있습니다.', 'not_rejected');
+    ctx.json({ requested: true }, result === 'created' ? 201 : 200);
   });
 }

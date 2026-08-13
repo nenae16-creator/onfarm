@@ -3,6 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#00754a" />
+    <meta name="description" content="ON-FARM 농산물 주문 수량과 거점 진행 상태 확인" />
     <title>ON-FARM · 주문 확인</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/img/icon.svg" type="image/svg+xml" />
@@ -10,55 +12,195 @@
     <link rel="stylesheet" href="/css/farmer.css" />
   </head>
   <body class="farmer">
-    <header class="farmer-top">
-      <a class="plain" href="/farmer">← 처음으로</a>
-      <div class="who">주문 확인</div>
+    <a class="skip-link" href="#mainContent">본문으로 바로가기</a>
+    <header class="farmer-top subpage-top">
+      <a class="back-link" href="/farmer">
+        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m14 5-7 7 7 7" />
+        </svg>
+        <span>홈</span>
+      </a>
+      <div class="page-context">
+        <strong>주문 확인</strong>
+        <small>준비할 상품과 수량</small>
+      </div>
     </header>
-    <main class="farmer-main">
-      <div id="list"><p class="empty">불러오는 중…</p></div>
-      <p class="note">
-        주문이 들어오면 상품을 준비해 지역 거점에 갖다 놓으시면 됩니다. 포장·배송·정산은 거점과 플랫폼이 처리합니다.
-      </p>
+
+    <main class="farmer-main management-main" id="mainContent">
+      <section class="page-intro" aria-labelledby="pageTitle">
+        <p class="eyebrow">주문 관리</p>
+        <h1 id="pageTitle">준비할 주문을 확인하세요.</h1>
+        <p class="lead" id="orderSummary">주문을 불러오고 있습니다.</p>
+      </section>
+
+      <div class="item-list" id="list">
+        <div class="loading-state"><span></span><p>주문을 불러오는 중입니다</p></div>
+      </div>
+
+      <aside class="info-panel">
+        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11v6M12 7.5h.01" />
+        </svg>
+        <div>
+          <strong>포장과 배송은 거점이 돕습니다.</strong>
+          <p>주문 상품을 준비해 지역 거점에 가져다 놓으시면 됩니다.</p>
+        </div>
+      </aside>
     </main>
 
+    <nav class="farmer-bottom-nav" aria-label="농가 주요 메뉴">
+      <a href="/farmer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10M9 20v-6h6v6"/></svg><span>홈</span></a>
+      <a href="/farmer/sell"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h3l2-2h4l2 2h3a2 2 0 0 1 2 2v9H3V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3"/></svg><span>등록</span></a>
+      <a href="/farmer/listings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M7 4v4M12 10v4M17 16v4"/></svg><span>판매</span></a>
+      <a class="current" href="/farmer/orders" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V5a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg><span>주문</span></a>
+      <a href="/farmer/settlement"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M7.5 8.5 9.5 16l2.5-5 2.5 5 2-7.5"/></svg><span>정산</span></a>
+    </nav>
+
     <script type="module">
-      import { api, requireRole, money, el, $, inspectionLabel } from '/js/api.js';
+      import { api, requireRole, money, el, $, fulfillmentLabel, toast, startAutoRefresh } from '/js/api.js';
       import { speak } from '/js/speak.js';
 
+      function hubGuide(order) {
+        if (!order.hub_name || !order.hub_address) {
+          return el('p', { class: 'order-action', text: '상품을 준비해 지역 거점에 가져다 놓아 주세요.' });
+        }
+
+        const copyButton = el('button', {
+          class: 'inventory-action',
+          type: 'button',
+          text: '주소 복사',
+          'aria-label': `${order.hub_name} 주소 복사`,
+          onclick: async () => {
+            try {
+              await navigator.clipboard.writeText(order.hub_address);
+              toast('거점 주소를 복사했습니다.');
+            } catch {
+              toast('주소를 복사하지 못했습니다.');
+            }
+          },
+        });
+        const readyButton = order.fulfillment_status === 'farmer_preparing'
+          ? el('button', {
+              class: 'inventory-action primary',
+              type: 'button',
+              text: '준비 완료',
+              'aria-label': `${order.title} 준비 완료 처리`,
+              onclick: async (event) => {
+                const button = event.currentTarget;
+                button.disabled = true;
+                button.textContent = '처리 중…';
+                try {
+                  await api(`/api/farmer/order-items/${order.id}/ready`, { body: {} });
+                  toast('거점에 입고 대기로 전달했습니다.');
+                  await refreshOrders();
+                } catch (error) {
+                  toast(error.message);
+                  button.disabled = false;
+                  button.textContent = '준비 완료';
+                }
+              },
+            })
+          : null;
+        return el('section', { class: 'order-action hub-guide', 'aria-label': '전달할 거점' }, [
+          el('strong', { text: `가져갈 곳 · ${order.hub_name}` }),
+          el('address', { text: order.hub_address }),
+          el('p', { text: order.fulfillment_status === 'farmer_preparing'
+            ? '포장을 마친 뒤 준비 완료를 눌러주세요.'
+            : '준비 완료했습니다. 거점의 입고 확인을 기다리고 있습니다.' }),
+          el('div', { class: 'hub-actions' }, [copyButton, readyButton]),
+        ]);
+      }
+
+      let orderSignature = '';
+      let previousPendingIds = null;
+
+      async function loadOrders() {
+        const { orders } = await api('/api/farmer/orders');
+        const signature = JSON.stringify(orders.map((order) => [order.id, order.fulfillment_status, order.has_rejection, order.rejection_note]));
+        if (signature === orderSignature) return;
+        if (document.hidden) return;
+
+        const pendingOrders = orders.filter((order) => order.fulfillment_status === 'farmer_preparing' && !order.has_rejection);
+        const rejectedOrders = orders.filter((order) => order.has_rejection);
+        const pendingIds = new Set(pendingOrders.map((order) => order.id));
+        const newPendingCount = previousPendingIds === null
+          ? pendingIds.size
+          : [...pendingIds].filter((id) => !previousPendingIds.has(id)).length;
+        previousPendingIds = pendingIds;
+        const box = $('#list');
+        box.replaceChildren();
+
+        if (pendingOrders.length > 0) {
+          const rejectedSummary = rejectedOrders.length ? ` 반려된 주문은 ${rejectedOrders.length}건입니다.` : '';
+          $('#orderSummary').textContent = `전체 ${orders.length}건 중 지금 준비할 주문이 ${pendingOrders.length}건 있습니다.${rejectedSummary}`;
+          if (newPendingCount > 0) speak(`준비할 주문이 ${pendingOrders.length}건 있습니다.${rejectedSummary}`);
+        } else if (rejectedOrders.length > 0) {
+          $('#orderSummary').textContent = `전체 ${orders.length}건 중 반려된 주문이 ${rejectedOrders.length}건 있습니다.`;
+        } else if (orders.length > 0) {
+          $('#orderSummary').textContent = `전체 주문 ${orders.length}건이 모두 다음 단계로 넘어갔습니다.`;
+        } else {
+          $('#orderSummary').textContent = '아직 들어온 주문이 없습니다.';
+        }
+
+        if (!orders.length) {
+          box.append(
+            el('section', { class: 'empty-state' }, [
+              el('div', {
+                class: 'empty-icon',
+                html: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V5a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg>',
+              }),
+              el('h2', { text: '아직 주문이 없습니다.' }),
+              el('p', { text: '주문이 들어오면 이 화면과 음성으로 알려드립니다.' }),
+            ]),
+          );
+        }
+
+        for (const order of orders) {
+          const rejected = Boolean(order.has_rejection);
+          const needsAttention = order.fulfillment_status === 'farmer_preparing' && !rejected;
+          const statusLabel = rejected ? '검수 반려' : fulfillmentLabel(order.fulfillment_status);
+          box.append(
+            el('article', { class: `order-item${needsAttention ? ' needs-attention' : ''}` }, [
+              el('header', { class: 'order-head' }, [
+                el('div', {}, [
+                  el('p', { class: 'order-number', text: `주문 ${order.order_no}` }),
+                  el('h2', { text: order.title }),
+                ]),
+                el('span', {
+                  class: rejected ? 'badge badge-danger' : needsAttention ? 'badge badge-hint' : 'badge badge-hub',
+                  text: rejected ? '검수 반려' : needsAttention ? '준비 필요' : statusLabel,
+                }),
+              ]),
+              el('p', { class: 'order-amount', text: money(order.amount) }),
+              el('dl', { class: 'order-details' }, [
+                el('div', { class: 'kv' }, [
+                  el('dt', { class: 'k', text: '준비할 수량' }),
+                  el('dd', { class: 'v', text: `${order.quantity} × ${order.sku_label}` }),
+                ]),
+                el('div', { class: 'kv' }, [
+                  el('dt', { class: 'k', text: '진행 상태' }),
+                  el('dd', { class: 'v', text: statusLabel }),
+                ]),
+                rejected
+                  ? el('div', { class: 'kv' }, [
+                      el('dt', { class: 'k', text: '반려 사유' }),
+                      el('dd', { class: 'v', text: order.rejection_note || '거점에 확인해주세요.' }),
+                    ])
+                  : null,
+              ]),
+              !rejected && (order.fulfillment_status === 'farmer_preparing' || order.fulfillment_status === 'ready_for_hub')
+                ? hubGuide(order)
+                : null,
+            ]),
+          );
+        }
+        orderSignature = signature;
+      }
+
       await requireRole('farmer');
-      const { orders } = await api('/api/farmer/orders');
-      const box = $('#list');
-      box.replaceChildren();
-
-      if (!orders.length) {
-        box.append(el('p', { class: 'empty', text: '아직 들어온 주문이 없습니다.' }));
-      } else {
-        speak(`새 주문이 ${orders.length}건 있습니다.`);
-      }
-
-      for (const o of orders) {
-        box.append(
-          el('div', { class: 'card', style: 'margin-bottom:12px' }, [
-            el('div', { style: 'font-size:22px; font-weight:800', text: o.title }),
-            el('div', { class: 'kv' }, [
-              el('span', { class: 'k', text: '수량' }),
-              el('span', { class: 'v', text: `${o.quantity} × ${o.sku_label}` }),
-            ]),
-            el('div', { class: 'kv' }, [
-              el('span', { class: 'k', text: '금액' }),
-              el('span', { class: 'v', text: money(o.amount) }),
-            ]),
-            el('div', { class: 'kv' }, [
-              el('span', { class: 'k', text: '주문번호' }),
-              el('span', { class: 'v', text: o.order_no }),
-            ]),
-            el('div', { class: 'kv' }, [
-              el('span', { class: 'k', text: '지금 상태' }),
-              el('span', { class: 'v', text: inspectionLabel(o.inspection_status) }),
-            ]),
-          ]),
-        );
-      }
+      const refreshOrders = startAutoRefresh(loadOrders);
+      await refreshOrders();
     </script>
   </body>
 </html>

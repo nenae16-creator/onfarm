@@ -30,6 +30,16 @@ export function money(value) {
   return `${Number(value ?? 0).toLocaleString('ko-KR')}원`;
 }
 
+export function dateTimeKst(value) {
+  if (!value) return '';
+  const date = new Date(`${String(value).replace(' ', 'T')}Z`);
+  return Number.isNaN(date.getTime())
+    ? String(value)
+    : new Intl.DateTimeFormat('ko-KR', {
+        timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short',
+      }).format(date);
+}
+
 export function $(selector, root = document) {
   return root.querySelector(selector);
 }
@@ -113,12 +123,57 @@ export const INSPECTION_STEPS = [
   ['ai_checked', 'AI 확인'],
   ['hub_pending', '거점 검수 대기'],
   ['hub_passed', '검수 완료'],
-  ['ready_to_ship', '배송 준비'],
-  ['delivered', '배송 완료'],
 ];
 
 export function inspectionLabel(status) {
+  if (status === 'ready_to_ship' || status === 'delivered') return '검수 완료';
   return INSPECTION_STEPS.find(([key]) => key === status)?.[1] ?? status;
+}
+
+/** 보이는 탭만 갱신하고, 느린 요청이 겹치면 마지막 한 번만 다시 실행한다. */
+export function startAutoRefresh(load, intervalMs = 30_000) {
+  let running = false;
+  let queued = false;
+
+  async function refresh() {
+    if (document.hidden) return;
+    if (running) {
+      queued = true;
+      return;
+    }
+    running = true;
+    try {
+      await load();
+    } catch (error) {
+      // 자동 갱신 실패 시 현재 화면을 보존한다.
+      if (error?.status === 401 || error?.status === 403) location.reload();
+    } finally {
+      running = false;
+      if (queued) {
+        queued = false;
+        void refresh();
+      }
+    }
+  }
+
+  setInterval(refresh, intervalMs);
+  const onVisible = () => { if (!document.hidden) void refresh(); };
+  document.addEventListener('visibilitychange', onVisible);
+  window.addEventListener('online', onVisible);
+  return refresh;
+}
+
+export const FULFILLMENT_STEPS = [
+  ['farmer_preparing', '상품 준비 중'],
+  ['ready_for_hub', '거점 입고 대기'],
+  ['hub_received', '실물 검수 대기'],
+  ['hub_passed', '검수 완료'],
+  ['ready_to_ship', '배송 중'],
+  ['delivered', '배송 완료'],
+];
+
+export function fulfillmentLabel(status) {
+  return FULFILLMENT_STEPS.find(([key]) => key === status)?.[1] ?? status;
 }
 
 export function imageOf(listing) {

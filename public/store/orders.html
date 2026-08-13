@@ -3,27 +3,79 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>ON-FARM · 주문내역</title>
+    <meta name="theme-color" content="#00754a" />
+    <meta name="description" content="ON-FARM 주문 상품의 거점 검수와 배송 진행 상태를 확인하세요." />
+    <title>ON-FARM · 주문 내역</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/img/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/css/base.css" />
     <link rel="stylesheet" href="/css/store.css" />
   </head>
-  <body class="store">
+  <body class="store store-consumer">
+    <a class="skip-link" href="#mainContent">본문으로 바로가기</a>
+
     <header class="store-top">
       <div class="row">
-        <a class="logo" href="/"><span class="dot"></span>ON-FARM</a>
-        <div class="top-actions"><a class="chip-link" href="/">계속 쇼핑</a></div>
+        <a class="logo" href="/" aria-label="ON-FARM 산지 직송 매장 홈">
+          <img src="/img/icon.svg" alt="" aria-hidden="true" />
+          <span class="logo-copy"><strong>ON-FARM</strong><small>주문 내역</small></span>
+        </a>
+        <nav class="top-actions" aria-label="주요 메뉴">
+          <a class="nav-link" href="/" aria-label="매장 홈">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-7 9 7" /><path d="M5 10v10h14V10M9 20v-6h6v6" /></svg>
+            <span class="nav-label">홈</span>
+          </a>
+          <a class="nav-link current" href="/store/orders" aria-current="page" aria-label="주문 내역">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V5a2 2 0 0 1 2-2Z" /><path d="M9 8h6M9 12h6" /></svg>
+            <span class="nav-label">주문 내역</span>
+          </a>
+          <a class="nav-link" href="/store/cart" aria-label="장바구니">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h2l2 10h10l2-7H7M9 20h.01M17 20h.01" /></svg>
+            <span class="nav-label">장바구니</span>
+          </a>
+          <a class="nav-link role-switch" href="/farmer" aria-label="농가 작업장">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17c5-1 8-4 9-9 4 2 6 5 6 9-4 3-9 3-15 0Z" /><path d="M7 17c2-3 5-5 9-6" /></svg>
+            <span class="nav-label">농가</span>
+          </a>
+        </nav>
       </div>
     </header>
 
-    <main class="store-main">
-      <div class="section-title"><h2>주문내역</h2><span id="hint"></span></div>
-      <div id="list"></div>
+    <main class="store-main narrow" id="mainContent">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">구매 기록</p>
+          <h1>주문 진행을 확인하세요.</h1>
+          <p class="lead">거점의 실물 확인부터 배송 완료까지 상품별 상태를 보여드립니다.</p>
+        </div>
+        <span class="page-count" id="hint"></span>
+      </div>
+      <section class="orders-list" id="list" aria-label="주문 목록"></section>
     </main>
 
     <script type="module">
-      import { $, api, el, money, me, inspectionLabel } from '/js/api.js';
+      import { $, api, dateTimeKst, el, money, me, fulfillmentLabel, toast, startAutoRefresh } from '/js/api.js';
+      import { readCart, writeCart } from '/js/cart.js';
+
+      const ORDER_STEPS = ['상품 준비', '거점 입고', '실물 검수', '배송'];
+      const ORDER_STEP_INDEX = { farmer_preparing: 0, ready_for_hub: 1, hub_received: 2, hub_passed: 2, ready_to_ship: 3, delivered: 3 };
+
+      function orderTimeline(status, rejected) {
+        const currentIndex = ORDER_STEP_INDEX[status] ?? 0;
+        const delivered = status === 'delivered';
+        return el(
+          'div',
+          { class: 'timeline order-timeline', role: 'list', 'aria-label': `현재 상태: ${rejected ? '검수 반려' : fulfillmentLabel(status)}` },
+          ORDER_STEPS.map((label, index) =>
+            el('span', {
+              class: delivered || index < currentIndex ? 'step done' : index === currentIndex ? `step ${rejected ? 'rejected' : 'now'}` : 'step',
+              role: 'listitem',
+              'aria-current': !delivered && index === currentIndex ? 'step' : null,
+              text: delivered && index === currentIndex ? '배송 완료' : rejected && index === currentIndex ? '검수 반려' : label,
+            }),
+          ),
+        );
+      }
 
       const justOrdered = new URLSearchParams(location.search).get('new');
       const session = await me();
@@ -31,36 +83,116 @@
         location.href = '/login?role=consumer&next=/store/orders';
       }
 
-      const { orders } = await api('/api/store/orders');
-      const box = $('#list');
-      box.replaceChildren();
-      $('#hint').textContent = `${orders.length}건`;
+      let ordersSignature = '';
+      async function loadOrders() {
+        const { orders } = await api('/api/store/orders');
+        const signature = JSON.stringify(orders);
+        if (signature === ordersSignature) return;
+        const box = $('#list');
+        box.replaceChildren();
+        $('#hint').textContent = `${orders.length}건`;
 
       if (!orders.length) {
-        box.append(el('p', { style: 'text-align:center;color:var(--muted);padding:40px 0', text: '주문 내역이 없습니다.' }));
-      }
-
-      for (const o of orders) {
-        const isNew = justOrdered && o.order_no === justOrdered;
         box.append(
-          el('div', { class: 'panel', style: isNew ? 'border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-tint)' : '' }, [
-            el('div', { style: 'display:flex;justify-content:space-between;align-items:center;gap:10px' }, [
-              el('div', [
-                el('div', { style: 'font-weight:800', text: o.order_no }),
-                el('div', { style: 'font-size:13px;color:var(--muted)', text: o.created_at }),
-              ]),
-              el('span', { class: 'badge badge-ai', text: isNew ? '방금 주문' : '결제 완료' }),
+          el('div', { class: 'empty-state' }, [
+            el('div', { class: 'empty-state-inner' }, [
+              el('span', { class: 'empty-state-icon', 'aria-hidden': 'true', html: '<svg class="ui-icon" viewBox="0 0 24 24"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V5a2 2 0 0 1 2-2Z" /><path d="M9 8h6M9 12h6" /></svg>' }),
+              el('h2', { text: '아직 주문 내역이 없습니다.' }),
+              el('p', { text: '산지에서 오늘 올라온 상품을 둘러보세요.' }),
+              el('a', { class: 'btn', href: '/', text: '상품 둘러보기' }),
             ]),
-            ...o.items.map((it) =>
-              el('div', { class: 'trust-row' }, [
-                el('span', { class: 'k', text: `${it.title} × ${it.quantity}` }),
-                el('span', { class: 'v', text: `${money(it.amount)} · ${inspectionLabel(it.inspection_status)}` }),
-              ]),
-            ),
-            el('div', { style: 'text-align:right;font-weight:900;margin-top:8px', text: `합계 ${money(o.total_amount)}` }),
           ]),
         );
       }
+
+      for (const order of orders) {
+        const isNew = justOrdered && order.order_no === justOrdered;
+        const reorderItems = order.items.filter((item) => !item.has_rejection);
+        const rejectedCount = order.items.length - reorderItems.length;
+        const lines = order.items.map((item) => {
+          const helpButton = item.has_rejection
+            ? el('button', {
+                class: 'btn secondary order-help-button',
+                type: 'button',
+                text: item.help_requested ? '도움 요청 완료' : '도움 요청',
+                disabled: item.help_requested ? '' : null,
+                'aria-label': `${item.title} 반려와 환불 도움 요청`,
+                onclick: async (event) => {
+                  const button = event.currentTarget;
+                  button.disabled = true;
+                  try {
+                    await api(`/api/store/order-items/${item.id}/help-request`, { body: {} });
+                    button.textContent = '도움 요청 완료';
+                    toast('거점 담당자에게 도움 요청을 보냈습니다.');
+                    await refreshOrders();
+                  } catch (error) {
+                    button.disabled = false;
+                    toast(error.message);
+                  }
+                },
+              })
+            : null;
+          return el('div', { class: `order-line${item.has_rejection ? ' is-rejected' : ''}` }, [
+            el('div', {}, [
+              el('div', { class: 'order-line-title', text: `${item.title} × ${item.quantity}` }),
+              el('div', {
+                class: 'order-line-status',
+                text: `현재 · ${item.has_rejection ? '검수 반려 · 환불 예정' : fulfillmentLabel(item.fulfillment_status)}`,
+              }),
+              orderTimeline(item.fulfillment_status, item.has_rejection),
+              item.has_rejection
+                ? el('div', { class: 'order-rejection' }, [
+                    el('p', {}, [el('strong', { text: '반려 사유 · ' }), item.rejection_note || '사유가 등록되지 않았습니다.']),
+                    el('p', {}, [el('strong', { text: '환불 예정액 · ' }), money(item.refund_amount)]),
+                    el('p', { class: 'order-refund-note', text: '이 상품의 결제금액 전액이 환불 예정입니다. 시연 환경에서는 실제 결제가 취소되지 않습니다.' }),
+                    helpButton,
+                  ])
+                : null,
+            ]),
+            el('div', { class: 'order-line-price order-refund' }, [
+              item.has_rejection ? el('small', { text: '환불 예정' }) : null,
+              el('strong', { text: money(item.has_rejection ? item.refund_amount : item.amount) }),
+            ]),
+          ]);
+        });
+
+        box.append(
+          el('article', { class: `order-card${isNew ? ' is-new' : ''}` }, [
+            el('header', { class: 'order-card-head' }, [
+              el('div', {}, [
+                el('div', { class: 'order-number', text: order.order_no }),
+                el('div', { class: 'order-date', text: dateTimeKst(order.created_at) }),
+              ]),
+              el('span', { class: `badge ${isNew ? 'badge-ai' : 'badge-muted'}`, text: isNew ? '방금 접수' : '결제 완료' }),
+            ]),
+            el('div', { class: 'order-lines' }, lines),
+            el('footer', { class: 'order-total' }, [
+              el('div', { class: 'order-total-copy' }, [
+                el('span', { text: '주문 합계' }),
+                el('strong', { text: money(order.total_amount) }),
+              ]),
+              reorderItems.length
+                ? el('button', {
+                    class: 'btn secondary order-repeat-button',
+                    type: 'button',
+                    text: rejectedCount ? '가능한 상품 다시 담기' : '다시 담기',
+                    'aria-label': `${order.order_no} 주문의 ${rejectedCount ? '반려되지 않은 ' : ''}상품 다시 장바구니에 담기`,
+                    onclick: (event) => {
+                      event.currentTarget.disabled = true;
+                      writeCart([...readCart(), ...reorderItems.map((item) => ({ listingId: item.listing_id, quantity: item.quantity }))]);
+                      location.href = '/store/cart';
+                    },
+                  })
+                : null,
+            ]),
+          ]),
+        );
+      }
+        ordersSignature = signature;
+      }
+
+      const refreshOrders = startAutoRefresh(loadOrders);
+      await refreshOrders();
     </script>
   </body>
 </html>

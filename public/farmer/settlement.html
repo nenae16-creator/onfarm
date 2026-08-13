@@ -3,6 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#00754a" />
+    <meta name="description" content="ON-FARM 판매 금액과 지급 예정 정산 내역 확인" />
     <title>ON-FARM · 정산 확인</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/img/icon.svg" type="image/svg+xml" />
@@ -10,57 +12,133 @@
     <link rel="stylesheet" href="/css/farmer.css" />
   </head>
   <body class="farmer">
-    <header class="farmer-top">
-      <a class="plain" href="/farmer">← 처음으로</a>
-      <div class="who">정산 확인</div>
-    </header>
-    <main class="farmer-main">
-      <div class="card">
-        <div class="price-block">
-          <div class="unit">받으실 돈(예정)</div>
-          <p class="price" id="pending">-</p>
-        </div>
-        <div class="kv"><span class="k">지금까지 판 금액</span><span class="v" id="gross">-</span></div>
-        <div class="kv"><span class="k">수수료</span><span class="v" id="fee">-</span></div>
-        <div class="kv"><span class="k">이미 받은 돈</span><span class="v" id="paid">-</span></div>
-        <button class="speak-button" id="speakBtn" style="margin-top: 14px">🔊 읽어주기</button>
+    <a class="skip-link" href="#mainContent">본문으로 바로가기</a>
+    <header class="farmer-top subpage-top">
+      <a class="back-link" href="/farmer">
+        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m14 5-7 7 7 7" />
+        </svg>
+        <span>홈</span>
+      </a>
+      <div class="page-context">
+        <strong>정산 확인</strong>
+        <small>받을 돈과 지급 내역</small>
       </div>
-      <div id="rows" style="margin-top: 16px"></div>
-      <p class="note" id="feeNote"></p>
+    </header>
+
+    <main class="farmer-main management-main" id="mainContent">
+      <section class="page-intro" aria-labelledby="pageTitle">
+        <p class="eyebrow">판매 정산</p>
+        <h1 id="pageTitle">받으실 돈을 확인하세요.</h1>
+        <p class="lead">판매 금액에서 수수료를 뺀 실제 지급 예정 금액입니다.</p>
+      </section>
+
+      <section class="settlement-hero" aria-labelledby="pendingLabel">
+        <div>
+          <p id="pendingLabel">받으실 돈</p>
+          <strong id="pending">-</strong>
+          <span id="nextDue">지급 예정일 확인 중</span>
+        </div>
+        <button class="speak-button inverse" id="speakBtn" type="button">
+          <svg class="ui-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 10v4h4l5 4V6L8 10H4Z" />
+            <path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" />
+          </svg>
+          읽어주기
+        </button>
+      </section>
+
+      <section class="settlement-breakdown" aria-label="정산 요약">
+        <dl>
+          <div class="kv"><dt class="k">정산 대상 판매 금액</dt><dd class="v" id="gross">-</dd></div>
+          <div class="kv"><dt class="k">수수료</dt><dd class="v" id="fee">-</dd></div>
+          <div class="kv"><dt class="k">이미 받은 돈</dt><dd class="v" id="paid">-</dd></div>
+        </dl>
+      </section>
+
+      <section class="history-section" aria-labelledby="historyTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">상세 내역</p>
+            <h2 id="historyTitle">상품별 정산</h2>
+          </div>
+          <span class="section-status" id="rowCount">-</span>
+        </div>
+        <div class="item-list" id="rows"></div>
+      </section>
+
+      <aside class="info-panel fee-panel">
+        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11v6M12 7.5h.01" />
+        </svg>
+        <div>
+          <strong>수수료 안내</strong>
+          <p id="feeNote"></p>
+        </div>
+      </aside>
     </main>
 
+    <nav class="farmer-bottom-nav" aria-label="농가 주요 메뉴">
+      <a href="/farmer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10M9 20v-6h6v6"/></svg><span>홈</span></a>
+      <a href="/farmer/sell"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h3l2-2h4l2 2h3a2 2 0 0 1 2 2v9H3V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3"/></svg><span>등록</span></a>
+      <a href="/farmer/listings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M7 4v4M12 10v4M17 16v4"/></svg><span>판매</span></a>
+      <a href="/farmer/orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V5a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg><span>주문</span></a>
+      <a class="current" href="/farmer/settlement" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M7.5 8.5 9.5 16l2.5-5 2.5 5 2-7.5"/></svg><span>정산</span></a>
+    </nav>
+
     <script type="module">
-      import { api, requireRole, money, el, $ } from '/js/api.js';
+      import { api, requireRole, money, dateTimeKst, el, $ } from '/js/api.js';
       import { speak } from '/js/speak.js';
       import { speakPrice } from '/js/shared/korean.js';
 
       await requireRole('farmer');
       const data = await api('/api/farmer/settlements');
-      const s = data.summary;
+      const summary = data.summary;
 
-      $('#pending').textContent = money(s.pendingNet);
-      $('#gross').textContent = money(s.totalGross);
-      $('#fee').textContent = money(s.totalFee);
-      $('#paid').textContent = money(s.paidNet);
-      $('#feeNote').textContent = `수수료 ${(data.feeRate * 100).toFixed(0)}% 는 시연용 가정값입니다. 실제 요율은 운영 정책과 계약으로 정해집니다.`;
+      $('#pending').textContent = money(summary.pendingNet);
+      $('#gross').textContent = money(summary.totalGross);
+      $('#fee').textContent = `− ${money(summary.totalFee)}`;
+      $('#paid').textContent = money(summary.paidNet);
+      $('#rowCount').textContent = `${data.rows.length}건`;
+      $('#feeNote').textContent = `수수료 ${(data.feeRate * 100).toFixed(0)}%와 배송 완료 7일 후 지급 일정은 시연용 가정값입니다. 실제 기준은 운영 정책과 계약으로 정합니다.`;
+      const nextDue = data.rows
+        .filter((row) => row.status === 'pending' && !row.has_rejection && row.due_on)
+        .map((row) => row.due_on)
+        .sort()[0];
+      $('#nextDue').textContent = nextDue
+        ? `다음 지급 예정일 · ${nextDue}`
+        : summary.processingNet > 0 ? '배송 완료 후 지급 예정일이 정해집니다' : '현재 지급 예정 내역 없음';
 
       const box = $('#rows');
       if (!data.rows.length) {
-        box.append(el('p', { class: 'empty', text: '아직 정산 내역이 없습니다.' }));
-      }
-      for (const r of data.rows) {
         box.append(
-          el('div', { class: 'list-item' }, [
-            el('div', { style: 'flex:1' }, [
-              el('div', { class: 't', text: r.title }),
-              el('div', { class: 's', text: `${r.order_no} · ${r.quantity}개` }),
-              el('div', { class: 's', text: `판매 ${money(r.gross)} − 수수료 ${money(r.fee)}` }),
+          el('section', { class: 'empty-state compact-empty' }, [
+            el('h2', { text: '아직 정산 내역이 없습니다.' }),
+            el('p', { text: '상품이 판매되면 받을 금액이 이곳에 표시됩니다.' }),
+          ]),
+        );
+      }
+
+      for (const row of data.rows) {
+        const excluded = row.status === 'pending' && row.has_rejection;
+        box.append(
+          el('article', { class: 'settlement-item' }, [
+            el('div', { class: 'settlement-item-main' }, [
+              el('p', { class: 'order-number', text: row.order_no }),
+              el('h3', { text: row.title }),
+              el('p', { class: 'item-unit', text: `${row.quantity}개 · 판매 ${money(row.gross)} − 수수료 ${money(row.fee)}` }),
+              el('p', { class: 'item-unit', text: excluded
+                ? '반려로 정산 제외'
+                : row.status === 'paid'
+                  ? `지급 기록 · ${row.paid_at ? dateTimeKst(row.paid_at) : '기존 기록(일시 없음)'}${row.payment_reference ? ` · ${row.payment_reference}` : ''}`
+                  : row.due_on ? `${row.due_on} 지급 예정` : '배송 완료 후 지급 예정일 확정' }),
             ]),
-            el('div', { style: 'text-align:right' }, [
-              el('div', { style: 'font-size:20px; font-weight:900', text: money(r.net) }),
+            el('div', { class: 'settlement-item-value' }, [
+              el('strong', { text: excluded ? '지급 없음' : money(row.net) }),
               el('span', {
-                class: r.status === 'paid' ? 'badge badge-ai' : 'badge badge-hint',
-                text: r.status === 'paid' ? '지급 완료' : '지급 예정',
+                class: excluded ? 'badge badge-danger' : row.status === 'paid' ? 'badge badge-ai' : 'badge badge-hint',
+                text: excluded ? '정산 제외' : row.status === 'paid' ? '지급 완료' : row.due_on ? '지급 예정' : '배송 진행 중',
               }),
             ]),
           ]),
@@ -68,7 +146,7 @@
       }
 
       $('#speakBtn').addEventListener('click', () => {
-        speak(`받으실 돈은 ${speakPrice(s.pendingNet)}입니다.`, { force: true });
+        speak(`받으실 돈은 ${speakPrice(summary.pendingNet)}입니다.`, { force: true });
       });
     </script>
   </body>

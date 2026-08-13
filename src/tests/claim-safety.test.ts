@@ -76,16 +76,50 @@ describe('클레임 안전 — 금지 표현', () => {
   }
 });
 
-describe('클레임 안전 — 있어야 하는 표현', () => {
-  it('소비자 상세 화면에 AI 한계 고지가 있다', () => {
+/**
+ * 문구가 아니라 **약속**을 검사한다.
+ *
+ * 디자인을 새로 하면 같은 뜻을 다른 말로 쓴다. 실제로 화면이 바뀌면서
+ * "참고 판정" 이 "최종 품질은 농산물을 직접 보고 확정합니다" 로 바뀌었다.
+ * 한 문장에 못을 박아 두면 이런 정상적인 개선까지 막고, 그러다 보면
+ * 테스트를 지우게 된다 — 그러면 약속이 진짜로 사라져도 아무도 모른다.
+ * 그래서 표현은 여러 갈래를 받아들이되, 약속이 없으면 반드시 깨지게 한다.
+ */
+function keepsPromise(html: string, alternatives: RegExp[]): boolean {
+  return alternatives.some((p) => p.test(html));
+}
+
+describe('클레임 안전 — 있어야 하는 약속', () => {
+  it('소비자 상세 화면: AI 가 등급·안전성을 확정하지 않는다고 밝힌다', () => {
     const html = readFileSync(join(ROOT, 'public/store/product.html'), 'utf8');
-    assert.match(html, /등급을 확정하지 않으며/, 'AI 한계 문구가 사라졌다');
-    assert.match(html, /거점 실물 검수/, '확정 주체 표기가 사라졌다');
+    assert.ok(
+      keepsPromise(html, [
+        /등급을 확정하지 않으며/,
+        /등급이나 식품 안전성을 확정하지 않습니다/,
+        /AI[^<]{0,40}확정하지 않습니다/,
+      ]),
+      'AI 가 확정하지 않는다는 고지가 사라졌다',
+    );
+    assert.ok(
+      keepsPromise(html, [/거점 실물 검수/, /거점의 실물 확인/, /거점[^<]{0,20}실물/]),
+      '확정 주체(거점 실물 확인) 표기가 사라졌다',
+    );
   });
 
-  it('농민 화면에 참고 판정임이 표시된다', () => {
+  it('농민 화면: 최종 품질은 사람이 실물로 정한다고 밝힌다', () => {
     const html = readFileSync(join(ROOT, 'public/farmer/index.html'), 'utf8');
-    assert.match(html, /참고 판정/);
+    assert.ok(
+      keepsPromise(html, [
+        /참고 판정/,
+        /최종 품질은[^<]{0,30}확정/,
+        /품질은 거점에서 확인/,
+      ]),
+      'AI 판정이 참고값일 뿐이라는 표시가 사라졌다',
+    );
+    assert.ok(
+      keepsPromise(html, [/AI가 가격을[^<]{0,20}않습니다/, /가격[^<]{0,20}미리 정한/]),
+      'AI 가 가격을 정하지 않는다는 표시가 사라졌다',
+    );
   });
 
   it('README 가 과제4 프레임(출하 손실)으로 시작한다', () => {

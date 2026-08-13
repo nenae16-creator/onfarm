@@ -104,9 +104,18 @@ export interface ListingView extends Listing {
   region_detail: string | null;
   farmer_name: string;
   hub_name: string | null;
+  has_rejection: 0 | 1;
 }
 
 export type OrderStatus = 'paid' | 'preparing' | 'shipped' | 'done' | 'cancelled';
+
+export type FulfillmentStatus =
+  | 'farmer_preparing'
+  | 'ready_for_hub'
+  | 'hub_received'
+  | 'hub_passed'
+  | 'ready_to_ship'
+  | 'delivered';
 
 export interface Order {
   id: number;
@@ -130,6 +139,7 @@ export interface OrderItem {
   unit_price: number;
   quantity: number;
   amount: number;
+  fulfillment_status: FulfillmentStatus;
 }
 
 export interface Settlement {
@@ -140,6 +150,9 @@ export interface Settlement {
   fee: number;
   net: number;
   status: 'pending' | 'paid';
+  due_on: string | null;
+  paid_at: string | null;
+  payment_reference: string | null;
   created_at: string;
 }
 

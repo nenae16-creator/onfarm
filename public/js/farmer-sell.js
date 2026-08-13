@@ -20,7 +20,15 @@ const state = {
 };
 
 const STEPS = ['stepPhoto', 'stepLoading', 'stepResult', 'stepManual', 'stepSku', 'stepConfirm', 'stepDone'];
-const DOT_INDEX = { stepPhoto: 0, stepLoading: 0, stepResult: 1, stepManual: 1, stepSku: 2, stepConfirm: 3, stepDone: 3 };
+const STEP_PROGRESS = {
+  stepPhoto: { step: '1 / 4', label: '사진 올리기', value: 25 },
+  stepLoading: { step: '1 / 4', label: '사진 확인 중', value: 25 },
+  stepResult: { step: '2 / 4', label: '품목 확인', value: 50 },
+  stepManual: { step: '2 / 4', label: '품목 직접 선택', value: 50 },
+  stepSku: { step: '3 / 4', label: '단위와 수량', value: 75 },
+  stepConfirm: { step: '4 / 4', label: '마지막 확인', value: 100 },
+  stepDone: { step: '완료', label: '판매 등록 완료', value: 100 },
+};
 
 function show(step) {
   state.step = step;
@@ -28,10 +36,15 @@ function show(step) {
     const node = document.getElementById(id);
     if (node) node.hidden = id !== step;
   }
-  const dots = $('#dots').children;
-  const active = DOT_INDEX[step] ?? 0;
-  for (let i = 0; i < dots.length; i += 1) dots[i].classList.toggle('on', i === active);
-  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+  $('#stepDone').classList.toggle('is-active', step === 'stepDone');
+  const progress = STEP_PROGRESS[step];
+  const progressNode = $('#sellProgress');
+  progressNode.hidden = step === 'stepDone';
+  progressNode.className = `sell-progress progress-${progress.value}`;
+  progressNode.setAttribute('aria-valuenow', String(progress.value));
+  $('#progressStep').textContent = progress.step;
+  $('#progressLabel').textContent = progress.label;
+  window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
 function unitWord(label) {
@@ -42,11 +55,12 @@ function unitWord(label) {
   return '개';
 }
 
-function emojiOf(code) {
-  return state.catalog.find((p) => p.code === code)?.emoji ?? '🧺';
-}
 function nameOf(code) {
   return state.catalog.find((p) => p.code === code)?.name ?? code;
+}
+
+function productMark(name) {
+  return name?.trim().slice(0, 1) || '품';
 }
 
 /* ───────── 시연용 합성 이미지 ─────────
@@ -131,8 +145,9 @@ function renderResult(result) {
   const r = result.recognition;
   const candidates = result.candidates ?? [];
   $('#resultImage').src = result.imagePath ?? '/img/sample/placeholder.svg';
-  $('#resultSub').textContent =
-    candidates.length > 1 ? '번호를 눌러 주세요.' : '맞으면 눌러 주세요.';
+  $('#resultSub').textContent = candidates.length > 1
+    ? '가장 비슷한 것부터 보여드립니다. 번호를 눌러 주세요.'
+    : '사진과 같으면 눌러 주세요.';
 
   const grid = $('#candidateGrid');
   grid.replaceChildren();
@@ -143,19 +158,17 @@ function renderResult(result) {
         'button',
         {
           type: 'button',
-          style: first ? 'border-color:var(--brand); background:var(--brand-tint)' : '',
+          class: `choice-button${first ? ' recommended' : ''}`,
+          'aria-label': `${i + 1}번 ${c.name}${first ? ', 가장 비슷한 품목' : ''}`,
           onclick: () => pickProduct(c.code),
         },
         [
-          el('span', { class: 'emoji', text: `${i + 1}` }),
-          el('span', { class: 'emoji', text: c.emoji ?? '🧺' }),
-          el('span', { style: 'flex:1' }, [
-            c.name,
+          el('span', { class: 'choice-number', text: `${i + 1}` }),
+          el('span', { class: 'produce-mark', text: productMark(c.name), 'aria-hidden': 'true' }),
+          el('span', { class: 'choice-copy' }, [
+            el('strong', { text: c.name }),
             first
-              ? el('div', {
-                  style: 'font-size:15px;font-weight:600;color:var(--brand-strong)',
-                  text: '가장 비슷해요',
-                })
+              ? el('small', { text: '사진과 가장 비슷합니다' })
               : null,
           ]),
         ],
@@ -181,9 +194,9 @@ function renderManual() {
   grid.replaceChildren();
   for (const p of state.catalog) {
     grid.append(
-      el('button', { type: 'button', onclick: () => pickProduct(p.code) }, [
-        el('span', { class: 'emoji', text: p.emoji ?? '🧺' }),
-        p.name,
+      el('button', { type: 'button', class: 'choice-button manual-choice', onclick: () => pickProduct(p.code) }, [
+        el('span', { class: 'produce-mark', text: productMark(p.name), 'aria-hidden': 'true' }),
+        el('strong', { text: p.name }),
       ]),
     );
   }
@@ -242,14 +255,21 @@ function renderSku() {
           'button',
           {
             type: 'button',
-            style: selected ? 'border-color:var(--brand); background:var(--brand-tint)' : '',
+            class: `choice-button sku-choice${selected ? ' selected' : ''}`,
+            'aria-pressed': String(selected),
             onclick: () => {
               state.sku = sku;
               renderSku();
               speakSku();
             },
           },
-          [el('span', { class: 'emoji', text: selected ? '✅' : '⬜' }), `${sku.label} · ${money(sku.price)}`],
+          [
+            el('span', { class: 'choice-check', 'aria-hidden': 'true' }),
+            el('span', { class: 'choice-copy' }, [
+              el('strong', { text: sku.label }),
+              el('small', { text: money(sku.price) }),
+            ]),
+          ],
         ),
       );
     }
@@ -258,6 +278,26 @@ function renderSku() {
   $('#skuPrice').textContent = state.sku ? money(state.sku.price) : '-';
   $('#qtyUnitWord').textContent = unitWord(state.sku?.label);
   $('#qtyValue').textContent = String(state.quantity);
+  renderQuantityVisual();
+}
+
+function renderQuantityVisual() {
+  const word = unitWord(state.sku?.label);
+  const kind = word === '망' ? 'net' : word === '봉' ? 'bag' : 'box';
+  const visibleCount = Math.min(state.quantity, 3);
+  const pack = $('#quantityPack');
+  pack.replaceChildren();
+
+  for (let i = 0; i < visibleCount; i += 1) {
+    pack.append(el('span', { class: `quantity-package ${kind}` }));
+  }
+  if (state.quantity > visibleCount) {
+    pack.append(el('span', { class: 'quantity-more', text: `+${state.quantity - visibleCount}` }));
+  }
+
+  $('#qtyQuestion').textContent = `몇 ${word} 파실까요?`;
+  $('#quantityCaption').textContent = `${state.quantity}${word} 선택`;
+  $('#quantityVisual').setAttribute('aria-label', `선택한 수량: ${state.quantity}${word}`);
 }
 
 function speakSku() {
@@ -272,6 +312,7 @@ function speakSku() {
 function setQuantity(next) {
   state.quantity = Math.max(1, Math.min(999, next));
   $('#qtyValue').textContent = String(state.quantity);
+  renderQuantityVisual();
 }
 
 function renderConfirm() {
@@ -279,6 +320,7 @@ function renderConfirm() {
   $('#confirmImage').src = state.imagePath ?? '/img/sample/placeholder.svg';
   $('#cfProduct').textContent = nameOf(state.product);
   $('#cfSku').textContent = state.sku?.label ?? '-';
+  $('#cfUnitPriceLabel').textContent = `한 ${word} 값`;
   $('#cfPrice').textContent = money(state.sku?.price ?? 0);
   $('#cfQty').textContent = `${state.quantity}${word}`;
   $('#cfTotal').textContent = money((state.sku?.price ?? 0) * state.quantity);
@@ -327,14 +369,24 @@ $('#qtyPlus').addEventListener('click', () => setQuantity(state.quantity + 1));
 
 $('#voiceQty').addEventListener('click', async () => {
   const btn = $('#voiceQty');
-  btn.textContent = '🎤 듣고 있습니다…';
-  const { quantity, transcript } = await listenQuantity();
-  btn.textContent = '🎤 말로 수량 말하기';
-  if (quantity) {
-    setQuantity(quantity);
-    speak(`${nativeCount(quantity)} ${unitWord(state.sku?.label)}로 하겠습니다.`, { force: true });
-  } else {
-    toast(transcript ? `"${transcript}" 를 알아듣지 못했습니다.` : '잘 들리지 않았습니다.');
+  const label = $('#voiceQtyLabel');
+  btn.disabled = true;
+  btn.classList.add('is-listening');
+  label.textContent = '듣고 있습니다';
+  try {
+    const { quantity, transcript } = await listenQuantity();
+    if (quantity) {
+      setQuantity(quantity);
+      speak(`${nativeCount(quantity)} ${unitWord(state.sku?.label)}로 하겠습니다.`, { force: true });
+    } else {
+      toast(transcript ? `"${transcript}" 를 알아듣지 못했습니다.` : '잘 들리지 않았습니다.');
+    }
+  } catch {
+    toast('음성을 듣지 못했습니다. 버튼으로 수량을 골라 주세요.');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('is-listening');
+    label.textContent = '말로 수량 말하기';
   }
 });
 
@@ -366,7 +418,7 @@ $('#submitBtn').addEventListener('click', async () => {
     const word = unitWord(state.sku?.label);
     $('#doneSummary').textContent = `${nameOf(state.product)} ${state.sku?.label} ${state.quantity}${word}`;
     if (state.session?.farm) {
-      $('#doneHub').textContent = '주문이 모이면 지역 거점에 갖다 놓으면 끝';
+      $('#doneHub').textContent = '주문이 모이면 지역 거점에 가져다 놓으시면 됩니다.';
     }
     state.lastListingId = res.listing.id;
     show('stepDone');

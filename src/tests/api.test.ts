@@ -67,6 +67,51 @@ async function loginAs(call: ReturnType<typeof client>, name: string): Promise<n
   return account.id;
 }
 
+async function resetDemo(): Promise<void> {
+  const res = await client()('/api/demo/reset', { body: { confirm: 'RESET' } });
+  assert.equal(res.status, 200);
+}
+
+async function prepareHubItem(regionSigungu = '천안시') {
+  await resetDemo();
+  const store = client();
+  const listings = await store('/api/store/listings');
+  const listing = listings.body.listings.find(
+    (row: { region_sigungu: string }) => row.region_sigungu === regionSigungu,
+  );
+  assert.ok(listing, `${regionSigungu} 주문 가능 상품이 있어야 한다`);
+  await loginAs(store, '장바구니');
+  const ordered = await store('/api/store/orders', {
+    body: {
+      lines: [{ listingId: listing.id, quantity: 1 }],
+      receiverName: '장바구니', receiverPhone: '010-5555-1000', address: '충남 천안시',
+    },
+  });
+  assert.equal(ordered.status, 201);
+
+  const farmer = client();
+  await loginAs(farmer, listing.farmer_name);
+  const farmerOrders = await farmer('/api/farmer/orders');
+  const item = farmerOrders.body.orders.find(
+    (row: { order_no: string }) => row.order_no === ordered.body.order.order_no,
+  );
+  assert.ok(item);
+  assert.equal((await farmer(`/api/farmer/order-items/${item.id}/ready`, { body: {} })).status, 200);
+  return { store, farmer, item, listing };
+}
+
+async function receiveHubItem() {
+  const prepared = await prepareHubItem();
+  const hub = client();
+  await loginAs(hub, '성환거점 담당자');
+  const dashboard = await hub('/api/hub/dashboard');
+  const item = dashboard.body.items.find((row: { id: number }) => row.id === prepared.item.id);
+  assert.ok(item);
+  const received = await hub(`/api/hub/order-items/${item.id}/status`, { body: { status: 'hub_received' } });
+  assert.equal(received.status, 200);
+  return { ...prepared, hub, item };
+}
+
 after(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
   closeDb();
@@ -172,6 +217,18 @@ describe('HTTP — 사진 한 장에서 주문까지', () => {
     });
     assert.equal(ordered.status, 201);
     assert.equal(ordered.body.order.total_amount, 58000);
+    const delivery = await store('/api/store/delivery-profile');
+    assert.deepEqual(delivery.body.delivery, {
+      receiver_name: '장바구니',
+      receiver_phone: '010-5555-1000',
+      address: '충남 천안시 동남구',
+    });
+    const newConsumer = client();
+    await loginAs(newConsumer, '최수민');
+    assert.equal((await newConsumer('/api/store/delivery-profile')).body.delivery, null);
+    assert.equal((await newConsumer(`/api/store/delivery-profile?consumerId=${ordered.body.order.consumer_id}`)).body.delivery, null);
+    assert.equal((await client()('/api/store/delivery-profile')).status, 401);
+    assert.equal((await farmer('/api/store/delivery-profile')).status, 403);
 
     // ⑦ 재고 초과 주문은 409
     const oversell = await store('/api/store/orders', {
@@ -183,24 +240,44 @@ describe('HTTP — 사진 한 장에서 주문까지', () => {
       },
     });
     assert.equal(oversell.status, 409);
+    assert.equal(oversell.body.code, 'out_of_stock');
+    assert.equal((await store('/api/store/orders')).body.orders.length, 1, '실패한 주문이 남으면 안 된다');
+
+    const missing = await store('/api/store/orders', {
+      body: {
+        lines: [{ listingId: 999999, quantity: 1 }],
+        receiverName: '장바구니', receiverPhone: '010-5555-1000', address: '충남 천안시',
+      },
+    });
+    assert.equal(missing.status, 404);
+    assert.equal(missing.body.code, 'not_found');
 
     // ⑧ 농민 화면에 주문/정산이 보인다
     const orders = await farmer('/api/farmer/orders');
     assert.equal(orders.status, 200);
     assert.equal(orders.body.orders[0].quantity, 2);
+    const orderItemId = orders.body.orders[0].id as number;
+    assert.equal(orders.body.orders[0].fulfillment_status, 'farmer_preparing');
+    assert.equal((await farmer(`/api/farmer/order-items/${orderItemId}/ready`, { body: {} })).status, 200);
     const settlements = await farmer('/api/farmer/settlements');
     assert.equal(settlements.body.summary.totalGross, 58000);
 
-    // ⑨ 거점에서 검수하면 상태가 넘어간다
+    // ⑨ 거점이 입고 확인 후 검수하면 주문 상품 상태가 넘어간다
     const hub = client();
     await loginAs(hub, '성환거점 담당자');
+    assert.equal(
+      (await hub(`/api/hub/order-items/${orderItemId}/status`, { body: { status: 'hub_received' } })).status,
+      200,
+    );
     const inspected = await hub('/api/hub/inspections', {
-      body: { listingId, result: 'pass', gradedQuality: '상' },
+      body: { orderItemId, result: 'pass', gradedQuality: '상' },
     });
     assert.equal(inspected.status, 201);
     const detail = await store(`/api/store/listings/${listingId}`);
     assert.equal(detail.body.listing.inspection_status, 'hub_passed');
     assert.equal(detail.body.listing.remaining_quantity, 3);
+    const consumerOrders = await store('/api/store/orders');
+    assert.equal(consumerOrders.body.orders[0].items[0].fulfillment_status, 'hub_passed');
   });
 
   it('다른 농민의 분석 결과로는 상품을 올릴 수 없다', async () => {
@@ -360,75 +437,136 @@ describe('HTTP — 잘못된 입력이 500 이 되면 안 된다', () => {
 });
 
 describe('HTTP — 거점 권한과 확정 등급', () => {
+  it('입고 확인 전에는 검수할 수 없다', async () => {
+    const { item } = await prepareHubItem();
+    const hub = client();
+    await loginAs(hub, '성환거점 담당자');
+    const res = await hub('/api/hub/inspections', {
+      body: { orderItemId: item.id, result: 'pass', gradedQuality: '상' },
+    });
+    assert.equal(res.status, 409);
+    assert.equal(res.body.code, 'not_received');
+  });
+
+  it('반려 사유 없이 검수를 반려할 수 없다', async () => {
+    const { hub, item } = await receiveHubItem();
+    const res = await hub('/api/hub/inspections', { body: { orderItemId: item.id, result: 'reject' } });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, 'missing_rejection_note');
+  });
+
+  it('소비자는 반려 사유와 환불 예정액을 보고 도움을 한 번만 요청한다', async () => {
+    const { hub, item, store } = await receiveHubItem();
+    const rejected = await hub('/api/hub/inspections', {
+      body: { orderItemId: item.id, result: 'reject', note: '표면 손상이 확인되었습니다.' },
+    });
+    assert.equal(rejected.status, 201);
+
+    const orders = await store('/api/store/orders');
+    const consumerItem = orders.body.orders[0].items.find((row: { id: number }) => row.id === item.id);
+    assert.equal(consumerItem.rejection_note, '표면 손상이 확인되었습니다.');
+    assert.equal(consumerItem.refund_amount, consumerItem.amount);
+    assert.equal(consumerItem.help_requested, 0);
+
+    assert.equal((await store(`/api/store/order-items/${item.id}/help-request`, { body: {} })).status, 201);
+    assert.equal((await store(`/api/store/order-items/${item.id}/help-request`, { body: {} })).status, 200);
+    assert.equal((await store('/api/store/orders')).body.orders[0].items[0].help_requested, 1);
+    assert.equal((await hub('/api/hub/dashboard')).body.items.find((row: { id: number }) => row.id === item.id).help_requested, 1);
+
+    const other = client();
+    await loginAs(other, '최수민');
+    assert.equal((await other(`/api/store/order-items/${item.id}/help-request`, { body: {} })).status, 404);
+  });
+
   it('확정 등급 없이 검수를 통과시킬 수 없다', async () => {
-    const call = client();
-    await loginAs(call, '성환거점 담당자');
-    const dash = await call('/api/hub/dashboard');
-    const target = dash.body.listings[0];
-    const res = await call('/api/hub/inspections', { body: { listingId: target.id, result: 'pass' } });
+    const { hub, item } = await receiveHubItem();
+    const res = await hub('/api/hub/inspections', { body: { orderItemId: item.id, result: 'pass' } });
     assert.equal(res.status, 400, 'AI 참고값이 자동 승격되면 안 된다');
     assert.equal(res.body.code, 'bad_grade');
   });
 
   it('허용목록 밖 등급 문자열을 거부한다', async () => {
-    const call = client();
-    await loginAs(call, '성환거점 담당자');
-    const dash = await call('/api/hub/dashboard');
-    const target = dash.body.listings[0];
-    const res = await call('/api/hub/inspections', {
-      body: { listingId: target.id, result: 'pass', gradedQuality: '무농약·안전성 검사 완료' },
+    const { hub, item } = await receiveHubItem();
+    const res = await hub('/api/hub/inspections', {
+      body: { orderItemId: item.id, result: 'pass', gradedQuality: '무농약·안전성 검사 완료' },
     });
     assert.equal(res.status, 400);
   });
 
-  it('다른 거점 매물은 보이지도, 처리되지도 않는다', async () => {
+  it('다른 거점 주문 상품은 보이지도, 처리되지도 않는다', async () => {
+    const { item } = await prepareHubItem('서귀포시');
     const admin = client();
     await loginAs(admin, '운영자');
     const all = await admin('/api/hub/dashboard');
-    const jeju = all.body.listings.find((l: { region_sido: string }) => l.region_sido === '제주');
-    assert.ok(jeju, '제주 매물이 시드에 있어야 한다');
+    assert.ok(all.body.items.some((row: { id: number }) => row.id === item.id));
 
     const call = client();
     await loginAs(call, '성환거점 담당자');
     const mine = await call('/api/hub/dashboard');
-    assert.ok(
-      !mine.body.listings.some((l: { id: number }) => l.id === jeju.id),
-      '다른 거점 매물이 목록에 뜨면 안 된다',
-    );
-    const res = await call('/api/hub/inspections', {
-      body: { listingId: jeju.id, result: 'pass', gradedQuality: '상' },
-    });
-    assert.equal(res.status, 403);
+    assert.ok(!mine.body.items.some((row: { id: number }) => row.id === item.id));
+    const res = await call(`/api/hub/order-items/${item.id}/status`, { body: { status: 'hub_received' } });
+    assert.equal(res.status, 404);
   });
 
-  it('검수 전 매물을 배송 완료로 건너뛸 수 없다', async () => {
-    const call = client();
-    await loginAs(call, '성환거점 담당자');
-    const dash = await call('/api/hub/dashboard');
-    const target = dash.body.listings.find(
-      (l: { inspection_status: string }) => l.inspection_status === 'ai_checked',
-    );
-    assert.ok(target);
-    const res = await call(`/api/hub/listings/${target.id}/status`, { body: { status: 'delivered' } });
+  it('검수 전 주문 상품을 배송 완료로 건너뛸 수 없다', async () => {
+    const { item } = await prepareHubItem();
+    const hub = client();
+    await loginAs(hub, '성환거점 담당자');
+    const res = await hub(`/api/hub/order-items/${item.id}/status`, { body: { status: 'delivered' } });
     assert.equal(res.status, 409);
   });
 
+  it('검수가 끝난 상품을 뒤늦게 반려할 수 없다', async () => {
+    const { hub, item } = await receiveHubItem();
+    assert.equal((await hub('/api/hub/inspections', {
+      body: { orderItemId: item.id, result: 'pass', gradedQuality: '상' },
+    })).status, 201);
+    assert.equal((await hub(`/api/hub/order-items/${item.id}/status`, {
+      body: { status: 'ready_to_ship' },
+    })).status, 200);
+    const res = await hub('/api/hub/inspections', {
+      body: { orderItemId: item.id, result: 'reject', note: '뒤늦은 반려' },
+    });
+    assert.equal(res.status, 409);
+    assert.equal(res.body.code, 'not_received');
+  });
+
   it('확정 등급은 AI 참고값과 별도 필드로 소비자에게 내려간다', async () => {
-    const hub = client();
-    await loginAs(hub, '성환거점 담당자');
-    const dash = await hub('/api/hub/dashboard');
-    const target = dash.body.listings[0];
-    const aiHint = target.quality_hint;
+    const { hub, item, listing } = await receiveHubItem();
+    const dashboard = await hub('/api/hub/dashboard');
+    const aiHint = dashboard.body.items.find((row: { id: number }) => row.id === item.id).quality_hint;
 
     const res = await hub('/api/hub/inspections', {
-      body: { listingId: target.id, result: 'downgrade', gradedQuality: '보통' },
+      body: { orderItemId: item.id, result: 'downgrade', gradedQuality: '보통' },
     });
     assert.equal(res.status, 201);
 
     const store = client();
-    const detail = await store(`/api/store/listings/${target.id}`);
+    const detail = await store(`/api/store/listings/${listing.id}`);
     assert.equal(detail.body.listing.confirmed_quality, '보통');
     assert.equal(detail.body.listing.quality_hint, aiHint);
+  });
+
+  it('배송 완료 정산은 관리자만 지급 완료로 기록한다', async () => {
+    const { hub, item } = await receiveHubItem();
+    assert.equal((await hub('/api/hub/inspections', {
+      body: { orderItemId: item.id, result: 'pass', gradedQuality: '상' },
+    })).status, 201);
+    assert.equal((await hub(`/api/hub/order-items/${item.id}/status`, { body: { status: 'ready_to_ship' } })).status, 200);
+    assert.equal((await hub(`/api/hub/order-items/${item.id}/status`, { body: { status: 'delivered' } })).status, 200);
+
+    assert.equal((await hub('/api/admin/settlements')).status, 403);
+    const admin = client();
+    await loginAs(admin, '운영자');
+    const rows = await admin('/api/admin/settlements');
+    const settlement = rows.body.settlements.find((row: { order_item_id: number }) => row.order_item_id === item.id);
+    assert.ok(settlement?.due_on);
+    assert.equal((await admin(`/api/admin/settlements/${settlement.id}/pay`, { body: { reference: '' } })).status, 400);
+    assert.equal((await admin(`/api/admin/settlements/${settlement.id}/pay`, { body: { reference: 'BANK-001' } })).status, 200);
+    const repeated = await admin(`/api/admin/settlements/${settlement.id}/pay`, { body: { reference: 'BANK-001' } });
+    assert.equal(repeated.status, 200);
+    assert.equal(repeated.body.alreadyPaid, true);
+    assert.equal((await admin(`/api/admin/settlements/${settlement.id}/pay`, { body: { reference: 'BANK-002' } })).status, 409);
   });
 });
 

@@ -1,17 +1,27 @@
 // 장바구니는 브라우저 localStorage 에만 둔다(주문 확정 시 서버가 가격·재고를 다시 검증한다).
 const KEY = 'onfarm.cart.v1';
 
+function normalize(items) {
+  const quantities = new Map();
+  for (const item of Array.isArray(items) ? items : []) {
+    if (!Number.isSafeInteger(item?.listingId) || !Number.isSafeInteger(item?.quantity) || item.listingId <= 0 || item.quantity <= 0) continue;
+    const quantity = (quantities.get(item.listingId) ?? 0) + item.quantity;
+    if (Number.isSafeInteger(quantity)) quantities.set(item.listingId, quantity);
+  }
+  return [...quantities].map(([listingId, quantity]) => ({ listingId, quantity }));
+}
+
 export function readCart() {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]');
-    return Array.isArray(raw) ? raw.filter((i) => i && i.listingId) : [];
+    return normalize(raw);
   } catch {
     return [];
   }
 }
 
 export function writeCart(items) {
-  localStorage.setItem(KEY, JSON.stringify(items));
+  localStorage.setItem(KEY, JSON.stringify(normalize(items)));
   document.dispatchEvent(new CustomEvent('cart:changed'));
 }
 

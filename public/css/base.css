@@ -1,56 +1,80 @@
-/* ON-FARM 공통 토큰 — 농민/소비자/거점 화면이 공유하는 최소 단위 */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+
+/* ON-FARM 공통 기반 — 역할이 달라도 같은 서비스로 느껴지는 최소 디자인 언어 */
 :root {
-  --ink: #1b1a17;
-  --ink-soft: #4a453d;
-  --muted: #6f685c;
-  --paper: #fffdf8;
+  --ink: #1e1e1c;
+  --ink-soft: #454540;
+  --muted: #73736d;
+  --paper: #f7f7f3;
   --surface: #ffffff;
-  --line: #e7dfd1;
-  --brand: #1f7a3f;
-  --brand-strong: #175f31;
-  --brand-tint: #eaf5ee;
-  --accent: #d8541f;
-  --accent-strong: #b64314;
-  --accent-tint: #fdefe7;
-  --warn: #9a5b00;
-  --warn-tint: #fdf3e0;
-  --danger: #b3261e;
-  --radius: 16px;
-  --radius-lg: 22px;
-  --shadow: 0 2px 10px rgba(60, 45, 20, 0.08);
-  --shadow-lg: 0 10px 30px rgba(60, 45, 20, 0.14);
-  --font: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, -apple-system, sans-serif;
+  --surface-soft: #efefeb;
+  --line: #deded8;
+  --line-strong: #c5c5bd;
+  --brand: #00754a;
+  --brand-strong: #005f3c;
+  --brand-tint: #e4f3ec;
+  --accent: #00754a;
+  --accent-strong: #005f3c;
+  --accent-tint: #e4f3ec;
+  --warn: #775000;
+  --warn-tint: #fff2d2;
+  --danger: #9f2f28;
+  --danger-tint: #fae8e5;
+  --info: #2d5f87;
+  --info-tint: #e9f2f8;
+  --radius-sm: 6px;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --shadow: 0 10px 28px rgba(22, 50, 35, 0.08);
+  --shadow-lg: 0 20px 54px rgba(22, 50, 35, 0.12);
+  --font: 'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-html,
-body {
+html {
   margin: 0;
   padding: 0;
+  scroll-behavior: smooth;
 }
 
 body {
-  font-family: var(--font);
+  margin: 0;
+  padding: 0;
   color: var(--ink);
   background: var(--paper);
+  font-family: var(--font);
+  font-synthesis: none;
+  line-height: 1.55;
   -webkit-text-size-adjust: 100%;
-  line-height: 1.5;
+  word-break: keep-all;
+}
+
+img,
+svg {
+  display: block;
 }
 
 img {
   max-width: 100%;
-  display: block;
 }
 
 button,
 input,
 select,
 textarea {
-  font: inherit;
   color: inherit;
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 a {
@@ -58,8 +82,17 @@ a {
 }
 
 :focus-visible {
-  outline: 3px solid #2f6fd0;
-  outline-offset: 2px;
+  outline: 3px solid #00a66b;
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--brand);
+  color: #fff;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 .visually-hidden {
@@ -71,66 +104,91 @@ a {
   white-space: nowrap;
 }
 
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 12px;
+  z-index: 100;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+  transform: translateY(-160%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
 .wrap {
   width: 100%;
-  max-width: 640px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding-inline: 18px;
 }
 
 .wrap-wide {
-  max-width: 1100px;
+  max-width: 1180px;
 }
 
-/* 개발/데모 모드 배지 — 진짜 AI 가 아닌 상태를 절대 숨기지 않는다 */
+/* AI와 데모 상태는 작게 보이되 숨기지 않는다. */
 .mode-banner {
+  padding: 8px 18px;
+  border-bottom: 1px solid #e5c985;
   background: var(--warn-tint);
-  color: var(--warn);
-  border-bottom: 1px solid #f0dcb4;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 8px 16px;
+  color: #664400;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
   text-align: center;
 }
 
-.mode-banner[hidden] {
-  display: none;
-}
-
 .badge {
+  width: fit-content;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  border-radius: 999px;
-  padding: 3px 10px;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.6;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .badge-ai {
   background: var(--brand-tint);
   color: var(--brand-strong);
 }
+
 .badge-hint {
   background: var(--warn-tint);
   color: var(--warn);
 }
+
 .badge-hub {
-  background: #eef2fb;
-  color: #2a4a8b;
+  background: var(--info-tint);
+  color: var(--info);
 }
+
+.badge-danger {
+  background: var(--danger-tint);
+  color: var(--danger);
+}
+
 .badge-muted {
-  background: #f2efe9;
+  background: var(--surface-soft);
   color: var(--muted);
 }
 
 .spinner {
   width: 46px;
   height: 46px;
-  border-radius: 50%;
   border: 5px solid var(--brand-tint);
   border-top-color: var(--brand);
+  border-radius: 50%;
   animation: spin 0.9s linear infinite;
 }
 
@@ -140,22 +198,34 @@ a {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation-duration: 3s;
-  }
-}
-
 .toast {
   position: fixed;
   left: 50%;
   bottom: 24px;
-  transform: translateX(-50%);
-  background: #24211c;
-  color: #fff;
-  padding: 12px 18px;
-  border-radius: 999px;
-  font-size: 16px;
-  box-shadow: var(--shadow-lg);
   z-index: 50;
+  max-width: calc(100vw - 32px);
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: #1a2921;
+  box-shadow: var(--shadow-lg);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

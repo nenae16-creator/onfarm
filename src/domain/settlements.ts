@@ -31,12 +31,24 @@ export interface SettlementRow extends Settlement {
   order_no: string;
   title: string;
   quantity: number;
+  has_rejection: 0 | 1;
+}
+
+export interface PayableSettlementRow extends Settlement {
+  order_no: string;
+  title: string;
+  quantity: number;
+  farm_name: string;
 }
 
 export function listSettlements(db: Db, farmerId: number): SettlementRow[] {
   return all<SettlementRow>(
     db,
-    `SELECT st.*, o.order_no, l.title, oi.quantity
+    `SELECT st.*, o.order_no, l.title, oi.quantity,
+            EXISTS (
+              SELECT 1 FROM hub_inspections hi
+               WHERE hi.listing_id = oi.listing_id AND hi.result = 'reject'
+            ) AS has_rejection
        FROM settlements st
        JOIN order_items oi ON oi.id = st.order_item_id
        JOIN orders o       ON o.id = oi.order_id
@@ -47,7 +59,49 @@ export function listSettlements(db: Db, farmerId: number): SettlementRow[] {
   );
 }
 
+export function listPayableSettlements(db: Db): PayableSettlementRow[] {
+  return all<PayableSettlementRow>(
+    db,
+    `SELECT st.*, o.order_no, l.title, oi.quantity, f.farm_name
+       FROM settlements st
+       JOIN order_items oi ON oi.id = st.order_item_id
+       JOIN orders o       ON o.id = oi.order_id
+       JOIN listings l     ON l.id = oi.listing_id
+       JOIN farms f        ON f.id = l.farm_id
+      WHERE st.status = 'pending' AND oi.fulfillment_status = 'delivered'
+        AND st.due_on IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM hub_inspections hi
+                         WHERE hi.listing_id = oi.listing_id AND hi.result = 'reject')
+      ORDER BY st.due_on, st.id`,
+  );
+}
+
+export function markSettlementPaid(db: Db, id: number, reference: string): 'paid' | 'already_paid' | 'conflict' | 'not_found' | 'not_ready' | 'rejected' {
+  const row = one<SettlementRow & { fulfillment_status: string }>(
+    db,
+    `SELECT st.*, o.order_no, l.title, oi.quantity, oi.fulfillment_status,
+            EXISTS (SELECT 1 FROM hub_inspections hi
+                     WHERE hi.listing_id = oi.listing_id AND hi.result = 'reject') AS has_rejection
+       FROM settlements st JOIN order_items oi ON oi.id = st.order_item_id
+       JOIN orders o ON o.id = oi.order_id JOIN listings l ON l.id = oi.listing_id
+      WHERE st.id = ?`,
+    id,
+  );
+  if (!row) return 'not_found';
+  if (row.status === 'paid') return row.payment_reference === reference ? 'already_paid' : 'conflict';
+  if (row.has_rejection) return 'rejected';
+  if (row.fulfillment_status !== 'delivered') return 'not_ready';
+  run(
+    db,
+    "UPDATE settlements SET status = 'paid', paid_at = datetime('now'), payment_reference = ? WHERE id = ? AND status = 'pending'",
+    reference,
+    id,
+  );
+  return 'paid';
+}
+
 export interface SettlementSummary {
+  processingNet: number;
   pendingNet: number;
   paidNet: number;
   totalGross: number;
@@ -57,6 +111,7 @@ export interface SettlementSummary {
 
 export function settlementSummary(db: Db, farmerId: number): SettlementSummary {
   const row = one<{
+    processingNet: number | null;
     pendingNet: number | null;
     paidNet: number | null;
     totalGross: number | null;
@@ -65,15 +120,23 @@ export function settlementSummary(db: Db, farmerId: number): SettlementSummary {
   }>(
     db,
     `SELECT
-       SUM(CASE WHEN status = 'pending' THEN net ELSE 0 END) AS pendingNet,
-       SUM(CASE WHEN status = 'paid'    THEN net ELSE 0 END) AS paidNet,
-       SUM(gross) AS totalGross,
-       SUM(fee)   AS totalFee,
+       SUM(CASE WHEN st.status = 'pending' AND st.due_on IS NULL THEN st.net ELSE 0 END) AS processingNet,
+       SUM(CASE WHEN st.status = 'pending' AND st.due_on IS NOT NULL THEN st.net ELSE 0 END) AS pendingNet,
+       SUM(CASE WHEN st.status = 'paid'    THEN st.net ELSE 0 END) AS paidNet,
+       SUM(st.gross) AS totalGross,
+       SUM(st.fee)   AS totalFee,
        COUNT(*)   AS count
-     FROM settlements WHERE farmer_id = ?`,
+     FROM settlements st
+     JOIN order_items oi ON oi.id = st.order_item_id
+    WHERE st.farmer_id = ?
+      AND (st.status = 'paid' OR NOT EXISTS (
+        SELECT 1 FROM hub_inspections hi
+         WHERE hi.listing_id = oi.listing_id AND hi.result = 'reject'
+      ))`,
     farmerId,
   );
   return {
+    processingNet: row?.processingNet ?? 0,
     pendingNet: row?.pendingNet ?? 0,
     paidNet: row?.paidNet ?? 0,
     totalGross: row?.totalGross ?? 0,

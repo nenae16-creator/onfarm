@@ -22,3 +22,5 @@ outputs/demo/final_check/
 outputs/demo/bg.png
 outputs/demo/narration.m4a
 outputs/demo/video_path.txt
+.vercel/
+.gstack/

@@ -3,53 +3,184 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>ON-FARM · 판매 중인 상품</title>
+    <meta name="theme-color" content="#00754a" />
+    <meta name="description" content="ON-FARM에 올린 농산물의 판매 수량과 검수 상태 확인" />
+    <title>ON-FARM · 판매 상품</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/img/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/css/base.css" />
     <link rel="stylesheet" href="/css/farmer.css" />
   </head>
   <body class="farmer">
-    <header class="farmer-top">
-      <a class="plain" href="/farmer">← 처음으로</a>
-      <div class="who">판매 중인 상품</div>
+    <a class="skip-link" href="#mainContent">본문으로 바로가기</a>
+    <header class="farmer-top subpage-top">
+      <a class="back-link" href="/farmer">
+        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m14 5-7 7 7 7" />
+        </svg>
+        <span>홈</span>
+      </a>
+      <div class="page-context">
+        <strong>판매 상품</strong>
+        <small>수량과 진행 상태</small>
+      </div>
     </header>
-    <main class="farmer-main">
-      <div id="list"><p class="empty">불러오는 중…</p></div>
-      <div class="button-row">
-        <a class="big-button" href="/farmer/sell" style="text-decoration: none">사진 찍고 판매하기</a>
+
+    <main class="farmer-main management-main" id="mainContent">
+      <section class="page-intro" aria-labelledby="pageTitle">
+        <p class="eyebrow">판매 관리</p>
+        <h1 id="pageTitle">올린 상품을 확인하세요.</h1>
+        <p class="lead" id="listSummary">판매 수량과 거점 확인 상태를 불러오고 있습니다.</p>
+      </section>
+
+      <div class="item-list" id="list" aria-live="polite">
+        <div class="loading-state"><span></span><p>상품을 불러오는 중입니다</p></div>
+      </div>
+
+      <div class="button-row page-cta">
+        <a class="big-button" href="/farmer/sell">
+          <svg class="ui-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 8.5 9 5h6l2 3.5h2A2 2 0 0 1 21 10.5V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7.5a2 2 0 0 1 2-2h2Z" />
+            <circle cx="12" cy="14" r="3.5" />
+          </svg>
+          사진으로 상품 더 올리기
+        </a>
       </div>
     </main>
 
+    <nav class="farmer-bottom-nav" aria-label="농가 주요 메뉴">
+      <a href="/farmer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10M9 20v-6h6v6"/></svg><span>홈</span></a>
+      <a href="/farmer/sell"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h3l2-2h4l2 2h3a2 2 0 0 1 2 2v9H3V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3"/></svg><span>등록</span></a>
+      <a class="current" href="/farmer/listings" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M7 4v4M12 10v4M17 16v4"/></svg><span>판매</span></a>
+      <a href="/farmer/orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V5a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg><span>주문</span></a>
+      <a href="/farmer/settlement"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M7.5 8.5 9.5 16l2.5-5 2.5 5 2-7.5"/></svg><span>정산</span></a>
+    </nav>
+
     <script type="module">
-      import { api, requireRole, money, el, $, imageOf, inspectionLabel } from '/js/api.js';
+      import { api, requireRole, money, el, $, imageOf, inspectionLabel, toast } from '/js/api.js';
+
+      async function manageListing(id, body, button) {
+        button.disabled = true;
+        try {
+          await api(`/api/farmer/listings/${id}/manage`, { body });
+          location.reload();
+        } catch (error) {
+          button.disabled = false;
+          toast(error instanceof Error ? error.message : '처리하지 못했습니다.');
+        }
+      }
+
+      function listingActions(listing) {
+        if (listing.inspection_status !== 'ai_checked' || listing.has_rejection) return null;
+
+        const actions = [];
+        const maxStock = 999 - listing.quantity;
+        if (maxStock > 0) {
+          const inputId = `stock-${listing.id}`;
+          const input = el('input', {
+            id: inputId,
+            name: 'quantity',
+            type: 'number',
+            min: '1',
+            max: String(maxStock),
+            step: '1',
+            inputmode: 'numeric',
+            placeholder: '추가 수량',
+            required: '',
+          });
+          const addButton = el('button', {
+            class: 'inventory-action primary',
+            type: 'submit',
+            text: '재고 추가',
+          });
+          actions.push(
+            el('form', {
+              class: 'inventory-stock',
+              onsubmit: (event) => {
+                event.preventDefault();
+                manageListing(listing.id, { action: 'add_stock', quantity: Number(input.value) }, addButton);
+              },
+            }, [
+              el('label', { class: 'visually-hidden', for: inputId, text: `${listing.title} 추가 수량` }),
+              input,
+              addButton,
+            ]),
+          );
+        }
+
+        const toggleAction = listing.status === 'active'
+          ? { action: 'pause', label: '판매 중지' }
+          : listing.status === 'closed' && listing.remaining_quantity > 0
+            ? { action: 'resume', label: '판매 재개' }
+            : null;
+        if (toggleAction) {
+          const toggleButton = el('button', {
+            class: `inventory-action${toggleAction.action === 'resume' ? ' primary' : ''}`,
+            type: 'button',
+            text: toggleAction.label,
+            'aria-label': `${listing.title} ${toggleAction.label}`,
+          });
+          toggleButton.addEventListener('click', () => {
+            manageListing(listing.id, { action: toggleAction.action }, toggleButton);
+          });
+          actions.push(toggleButton);
+        }
+        return actions.length ? el('div', { class: 'inventory-actions' }, actions) : null;
+      }
 
       await requireRole('farmer');
       const { listings } = await api('/api/farmer/listings');
       const box = $('#list');
       box.replaceChildren();
 
+      const activeCount = listings.filter((listing) => listing.status === 'active').length;
+      $('#listSummary').textContent = listings.length
+        ? `전체 ${listings.length}개 상품 중 ${activeCount}개를 판매하고 있습니다.`
+        : '아직 올린 상품이 없습니다. 사진 한 장으로 첫 상품을 올려 보세요.';
+
       if (!listings.length) {
-        box.append(el('p', { class: 'empty', text: '아직 올린 상품이 없습니다.' }));
+        box.append(
+          el('section', { class: 'empty-state' }, [
+            el('div', {
+              class: 'empty-icon',
+              html: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7M12 11v10"/></svg>',
+            }),
+            el('h2', { text: '아직 판매 상품이 없습니다.' }),
+            el('p', { text: '아래 버튼을 눌러 수확한 농산물을 올려 보세요.' }),
+          ]),
+        );
       }
 
-      for (const l of listings) {
-        const sold = l.quantity - l.remaining_quantity;
+      for (const listing of listings) {
+        const sold = listing.quantity - listing.remaining_quantity;
         box.append(
-          el('div', { class: 'list-item' }, [
-            el('img', { src: imageOf(l), alt: '' }),
-            el('div', { style: 'flex:1' }, [
-              el('div', { class: 't', text: l.title }),
-              el('div', { class: 's', text: `${l.sku_label} · ${money(l.unit_price)}` }),
-              el('div', { class: 's', text: `남은 수량 ${l.remaining_quantity} / 판매 ${sold}` }),
-              el('div', { style: 'margin-top:6px; display:flex; gap:6px; flex-wrap:wrap' }, [
+          el('article', { class: 'inventory-item' }, [
+            el('img', { src: imageOf(listing), alt: listing.title }),
+            el('div', { class: 'inventory-body' }, [
+              el('div', { class: 'item-title-row' }, [
+                el('h2', { text: listing.title }),
+                el('strong', { class: 'item-price', text: money(listing.unit_price) }),
+              ]),
+              el('p', { class: 'item-unit', text: listing.sku_label }),
+              el('div', { class: 'stock-row' }, [
+                el('span', { text: `남은 수량 ${listing.remaining_quantity}` }),
+                el('span', { text: `판매 ${sold}` }),
+              ]),
+              el('progress', {
+                class: 'inventory-progress',
+                max: String(listing.quantity),
+                value: String(sold),
+                'aria-label': `${listing.title} 판매 수량 ${sold}개, 남은 수량 ${listing.remaining_quantity}개`,
+              }),
+              el('div', { class: 'badge-row item-badges' }, [
                 el('span', {
-                  class: l.status === 'active' ? 'badge badge-ai' : 'badge badge-muted',
-                  text: l.status === 'active' ? '판매 중' : l.status === 'sold_out' ? '완판' : '판매 종료',
+                  class: listing.status === 'active' ? 'badge badge-ai' : 'badge badge-muted',
+                  text: listing.status === 'active' ? '판매 중' : listing.status === 'sold_out' ? '완판' : '판매 종료',
                 }),
-                el('span', { class: 'badge badge-hub', text: inspectionLabel(l.inspection_status) }),
+                el('span', { class: 'badge badge-hub', text: inspectionLabel(listing.inspection_status) }),
               ]),
             ]),
+            listingActions(listing),
           ]),
         );
       }

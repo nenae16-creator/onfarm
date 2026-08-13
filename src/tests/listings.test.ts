@@ -4,11 +4,14 @@ import { defaultSku } from '../ai/sku-matcher.js';
 import { one } from '../db/index.js';
 import type { Db } from '../db/index.js';
 import {
+  addListingInventory,
   createListing,
   decrementInventory,
   getListingView,
   listStoreListings,
+  setFarmerListingStatus,
 } from '../domain/listings.js';
+import { recordInspection } from '../domain/inspections.js';
 import type { Listing, Product } from '../domain/types.js';
 import { farmerNamed, freshDb } from './helpers.js';
 
@@ -64,6 +67,9 @@ describe('상품 등록', () => {
     const jeju = listStoreListings(db, { region: '제주' });
     assert.ok(jeju.length > 0);
     assert.ok(jeju.every((l) => `${l.region_sido}${l.region_sigungu}`.includes('제주')));
+    const chungnamPear = listStoreListings(db, { productCode: 'pear', region: '충남' });
+    assert.ok(chungnamPear.length > 0);
+    assert.ok(chungnamPear.every((l) => l.product_code === 'pear' && l.region_sido === '충남'));
   });
 });
 
@@ -108,5 +114,33 @@ describe('재고 차감 — 초과 판매가 나오면 안 된다', () => {
     assert.equal(decrementInventory(db, listing.id, -1), false);
     assert.equal(decrementInventory(db, listing.id, 1.5), false);
     assert.equal(getListingView(db, listing.id)?.remaining_quantity, 3);
+  });
+});
+
+describe('농가 판매 관리', () => {
+  it('주문 전 자기 상품만 바꾸고 거점 반려 상품은 되살리지 않는다', () => {
+    const db = freshDb(false);
+    const listing = makeListing(db, 3);
+    const owner = farmerNamed(db).user;
+    const other = farmerNamed(db, '이만수').user;
+
+    assert.equal(addListingInventory(db, listing.id, other.id, 2), false);
+    assert.equal(addListingInventory(db, listing.id, owner.id, 2), true);
+    assert.equal(getListingView(db, listing.id)?.quantity, 5);
+    assert.equal(getListingView(db, listing.id)?.remaining_quantity, 5);
+
+    assert.equal(setFarmerListingStatus(db, listing.id, owner.id, 'closed'), true);
+    assert.equal(listStoreListings(db).some((item) => item.id === listing.id), false);
+    assert.equal(setFarmerListingStatus(db, listing.id, owner.id, 'active'), true);
+
+    recordInspection(db, {
+      listingId: listing.id,
+      hubId: null,
+      inspector: '테스트 담당자',
+      result: 'reject',
+    });
+    assert.equal(getListingView(db, listing.id)?.has_rejection, 1);
+    assert.equal(setFarmerListingStatus(db, listing.id, owner.id, 'active'), false);
+    assert.equal(addListingInventory(db, listing.id, owner.id, 1), false);
   });
 });

@@ -8,7 +8,11 @@ const VIEW_SELECT = `
          s.label AS sku_label, s.weight AS sku_weight, s.unit AS sku_unit,
          f.farm_name, f.region_sido, f.region_sigungu, f.region_detail,
          u.name AS farmer_name,
-         h.name AS hub_name
+         h.name AS hub_name,
+         EXISTS (
+           SELECT 1 FROM hub_inspections hi
+            WHERE hi.listing_id = l.id AND hi.result = 'reject'
+         ) AS has_rejection
     FROM listings l
     JOIN products p ON p.id = l.product_id
     JOIN skus s     ON s.id = l.sku_id
@@ -106,6 +110,57 @@ export function listByFarmer(db: Db, farmerId: number): ListingView[] {
     `${VIEW_SELECT} WHERE l.farmer_id = ? ORDER BY l.created_at DESC, l.id DESC`,
     farmerId,
   );
+}
+
+export function setFarmerListingStatus(
+  db: Db,
+  listingId: number,
+  farmerId: number,
+  status: 'active' | 'closed',
+): boolean {
+  const current = status === 'active' ? 'closed' : 'active';
+  const hasStock = status === 'active' ? 'AND remaining_quantity > 0' : '';
+  return run(
+    db,
+    `UPDATE listings SET status = ?
+      WHERE id = ? AND farmer_id = ? AND status = ?
+        AND inspection_status = 'ai_checked'
+        AND NOT EXISTS (
+          SELECT 1 FROM hub_inspections hi
+           WHERE hi.listing_id = listings.id AND hi.result = 'reject'
+        ) ${hasStock}`,
+    status,
+    listingId,
+    farmerId,
+    current,
+  ).changes === 1;
+}
+
+export function addListingInventory(
+  db: Db,
+  listingId: number,
+  farmerId: number,
+  quantity: number,
+): boolean {
+  if (!Number.isInteger(quantity) || quantity <= 0) return false;
+  return run(
+    db,
+    `UPDATE listings
+        SET quantity = quantity + ?,
+            remaining_quantity = remaining_quantity + ?,
+            status = CASE WHEN status = 'sold_out' THEN 'active' ELSE status END
+      WHERE id = ? AND farmer_id = ? AND inspection_status = 'ai_checked'
+        AND NOT EXISTS (
+          SELECT 1 FROM hub_inspections hi
+           WHERE hi.listing_id = listings.id AND hi.result = 'reject'
+        )
+        AND quantity + ? <= 999`,
+    quantity,
+    quantity,
+    listingId,
+    farmerId,
+    quantity,
+  ).changes === 1;
 }
 
 /** @param hubId null 이면 전체(관리자). 담당자는 자기 거점 물량만 본다. */

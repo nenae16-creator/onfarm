@@ -5,8 +5,10 @@ import { resolveProvider } from '../../ai/providers/index.js';
 import { catalog } from '../../ai/sku-matcher.js';
 import { db, tx } from '../../db/index.js';
 import { seed } from '../../db/seed.js';
+import { listPayableSettlements, markSettlementPaid } from '../../domain/settlements.js';
 import { HttpError } from '../../lib/http.js';
 import type { Router } from '../../lib/http.js';
+import { requireRole } from '../../lib/session.js';
 import { clearAnalyses } from '../analysis-store.js';
 
 export const BRAND = {
@@ -18,6 +20,7 @@ export const BRAND = {
 /** 초기화가 비우는 표. 마스터(products·skus·users·farms·hubs)는 seed 가 다시 채운다. */
 const RESET_TABLES = [
   'settlements',
+  'refund_help_requests',
   'order_items',
   'orders',
   'hub_inspections',
@@ -48,6 +51,28 @@ export function registerSystemRoutes(router: Router): void {
         category: p.category,
       })),
     });
+  });
+
+  router.get('/api/admin/settlements', (ctx) => {
+    requireRole(ctx.user, 'admin');
+    ctx.json({ settlements: listPayableSettlements(db()) });
+  });
+
+  router.post('/api/admin/settlements/:id/pay', async (ctx) => {
+    requireRole(ctx.user, 'admin');
+    const id = Number(ctx.params['id']);
+    if (!Number.isInteger(id)) throw new HttpError(400, '잘못된 정산입니다.', 'bad_request');
+    const body = await ctx.body<{ reference?: unknown }>();
+    const reference = typeof body.reference === 'string' ? body.reference.trim() : '';
+    if (!reference || reference.length > 80 || /[\u0000-\u001f\u007f]/.test(reference)) {
+      throw new HttpError(400, '지급 참조 번호를 입력해주세요.', 'invalid_reference');
+    }
+    const result = markSettlementPaid(db(), id, reference);
+    if (result === 'not_found') throw new HttpError(404, '정산을 찾을 수 없습니다.', 'not_found');
+    if (result === 'not_ready') throw new HttpError(409, '배송 완료 후 지급할 수 있습니다.', 'not_delivered');
+    if (result === 'rejected') throw new HttpError(409, '반려된 상품은 지급할 수 없습니다.', 'rejected');
+    if (result === 'conflict') throw new HttpError(409, '이미 다른 참조 번호로 지급 기록되었습니다.', 'payment_conflict');
+    ctx.json({ paid: true, alreadyPaid: result === 'already_paid' });
   });
 
   /**

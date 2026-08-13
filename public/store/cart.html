@@ -3,110 +3,218 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#00754a" />
+    <meta name="description" content="ON-FARM 장바구니 상품과 받는 분 정보를 확인하고 주문하세요." />
     <title>ON-FARM · 장바구니</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/img/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/css/base.css" />
     <link rel="stylesheet" href="/css/store.css" />
   </head>
-  <body class="store">
+  <body class="store store-consumer">
+    <a class="skip-link" href="#mainContent">본문으로 바로가기</a>
+
     <header class="store-top">
       <div class="row">
-        <a class="logo" href="/"><span class="dot"></span>ON-FARM</a>
-        <div class="top-actions"><a class="chip-link" href="/">계속 쇼핑</a></div>
+        <a class="logo" href="/" aria-label="ON-FARM 산지 직송 매장 홈">
+          <img src="/img/icon.svg" alt="" aria-hidden="true" />
+          <span class="logo-copy"><strong>ON-FARM</strong><small>장바구니</small></span>
+        </a>
+        <nav class="top-actions" aria-label="주요 메뉴">
+          <a class="nav-link" href="/" aria-label="매장 홈">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-7 9 7" /><path d="M5 10v10h14V10M9 20v-6h6v6" /></svg>
+            <span class="nav-label">홈</span>
+          </a>
+          <a class="nav-link" href="/store/orders" aria-label="주문 내역">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V5a2 2 0 0 1 2-2Z" /><path d="M9 8h6M9 12h6" /></svg>
+            <span class="nav-label">주문 내역</span>
+          </a>
+          <a class="nav-link current" href="/store/cart" aria-current="page" aria-label="장바구니">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h2l2 10h10l2-7H7M9 20h.01M17 20h.01" /></svg>
+            <span class="nav-label">장바구니</span>
+          </a>
+          <a class="nav-link role-switch" href="/farmer" aria-label="농가 작업장">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17c5-1 8-4 9-9 4 2 6 5 6 9-4 3-9 3-15 0Z" /><path d="M7 17c2-3 5-5 9-6" /></svg>
+            <span class="nav-label">농가</span>
+          </a>
+        </nav>
       </div>
     </header>
 
-    <main class="store-main">
-      <div class="section-title"><h2>장바구니</h2><span id="who"></span></div>
-      <div id="items"></div>
+    <main class="store-main" id="mainContent">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">주문 준비</p>
+          <h1>장바구니를 확인하세요.</h1>
+          <p class="lead">수량과 받는 분 정보를 확인하면 주문이 접수됩니다.</p>
+        </div>
+        <span class="page-count" id="who"></span>
+      </div>
 
-      <div class="panel" id="checkout" hidden>
-        <h3>받는 분</h3>
-        <label class="field"><span>이름</span><input id="rName" autocomplete="name" /></label>
-        <label class="field"><span>연락처</span><input id="rPhone" autocomplete="tel" placeholder="010-0000-0000" /></label>
-        <label class="field"><span>주소</span><input id="rAddress" autocomplete="street-address" /></label>
-        <label class="field"><span>요청사항 (선택)</span><input id="rMemo" /></label>
-        <p style="font-size: 13px; color: var(--muted); margin: 0">
-          MVP 데모입니다. 실제 결제·배송은 연동돼 있지 않으며 주문은 '결제완료' 상태로 기록됩니다.
-        </p>
+      <div class="cart-layout">
+        <section aria-labelledby="cartItemsTitle">
+          <div class="section-title"><h2 id="cartItemsTitle">담은 상품</h2><span id="itemCount"></span></div>
+          <p class="info-note" id="cartNotice" role="status" hidden></p>
+          <div class="cart-items" id="items"></div>
+        </section>
+
+        <form class="checkout-panel" id="checkout" hidden>
+          <h2>받는 분 정보</h2>
+          <p class="info-note" id="deliveryNotice" role="status" hidden></p>
+          <label class="field"><span>이름</span><input id="rName" autocomplete="name" placeholder="받는 분 이름" required /></label>
+          <label class="field"><span>연락처</span><input id="rPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" required /></label>
+          <label class="field"><span>주소</span><input id="rAddress" autocomplete="street-address" placeholder="도로명과 상세 주소" required /></label>
+          <label class="field"><span>요청사항 <small>(선택)</small></span><input id="rMemo" /></label>
+          <p class="checkout-note">
+            현재는 시연 환경입니다. 실제 결제·배송은 연동되지 않으며 주문은 결제 완료 상태로 기록됩니다.
+          </p>
+        </form>
       </div>
     </main>
 
-    <div class="buy-bar" id="bar" hidden>
-      <div class="total" id="total">0원</div>
-      <button class="btn" id="orderBtn">주문하기</button>
-    </div>
+    <aside class="buy-bar" id="bar" aria-label="주문 합계" hidden>
+      <div class="buy-bar-inner">
+        <div class="total"><small>주문 합계</small><span id="total">0원</span></div>
+        <div class="buy-actions"><button class="btn" id="orderBtn" type="submit" form="checkout">주문 접수하기</button></div>
+      </div>
+    </aside>
 
     <script type="module">
       import { $, api, el, imageOf, money, me, toast } from '/js/api.js';
-      import { clearCart, readCart, setQuantity } from '/js/cart.js';
+      import { clearCart, readCart, setQuantity, writeCart } from '/js/cart.js';
 
       const session = await me();
-      $('#who').textContent = session ? `${session.user.name}님` : '로그인 필요';
+      $('#who').textContent = session?.user?.role === 'consumer'
+        ? `${session.user.name}님`
+        : '소비자 로그인이 필요합니다';
       if (session?.user?.role === 'consumer') {
-        $('#rName').value = session.user.name;
-        $('#rPhone').value = session.user.phone ?? '';
-        $('#rAddress').value = '충남 천안시 동남구 ...';
+        let delivery = null;
+        try {
+          ({ delivery } = await api('/api/store/delivery-profile'));
+        } catch {
+          /* 계정 정보만으로 계속 입력할 수 있다. */
+        }
+        $('#rName').value ||= delivery?.receiver_name ?? session.user.name;
+        $('#rPhone').value ||= delivery?.receiver_phone ?? session.user.phone ?? '';
+        $('#rAddress').value ||= delivery?.address ?? '';
+        if (delivery) {
+          $('#deliveryNotice').textContent = '최근 주문의 배송 정보를 불러왔습니다. 필요하면 바꿔주세요.';
+          $('#deliveryNotice').hidden = false;
+        }
       }
 
+      let renderVersion = 0;
       async function render() {
+        const version = ++renderVersion;
+        $('#bar').hidden = true;
+        $('#checkout').hidden = true;
         const items = readCart();
         const box = $('#items');
+        const notice = $('#cartNotice');
         box.replaceChildren();
-        if (!items.length) {
-          box.append(el('p', { style: 'text-align:center;color:var(--muted);padding:40px 0', text: '장바구니가 비어 있습니다.' }));
+        notice.hidden = true;
+
+        const available = [];
+        const nextItems = [];
+        let removed = 0;
+        let reduced = 0;
+        let unavailable = 0;
+        for (const item of items) {
+          try {
+            const listing = (await api(`/api/store/listings/${item.listingId}`)).listing;
+            if (listing.status !== 'active' || listing.remaining_quantity <= 0) {
+              removed += 1;
+              continue;
+            }
+            const quantity = Math.min(item.quantity, listing.remaining_quantity);
+            if (quantity !== item.quantity) reduced += 1;
+            nextItems.push({ listingId: item.listingId, quantity });
+            available.push({ listing, quantity });
+          } catch (error) {
+            if (error.status === 404) {
+              removed += 1;
+            } else {
+              nextItems.push(item);
+              unavailable += 1;
+            }
+          }
+        }
+
+        if (version !== renderVersion) return;
+
+        if (JSON.stringify(nextItems) !== JSON.stringify(items)) writeCart(nextItems);
+
+        $('#itemCount').textContent = `${available.reduce((sum, item) => sum + item.quantity, 0)}개`;
+        if (removed || reduced || unavailable) {
+          notice.textContent = [
+            removed ? `품절 상품 ${removed}개를 뺐습니다.` : '',
+            reduced ? `재고에 맞춰 ${reduced}개 상품의 수량을 줄였습니다.` : '',
+            unavailable ? `상품 ${unavailable}개의 재고를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.` : '',
+          ].filter(Boolean).join(' ');
+          notice.hidden = false;
+        }
+
+        if (!available.length) {
+          box.append(
+            el('div', { class: 'empty-state' }, [
+              el('div', { class: 'empty-state-inner' }, [
+                el('span', { class: 'empty-state-icon', 'aria-hidden': 'true', html: '<svg class="ui-icon" viewBox="0 0 24 24"><path d="M3 5h2l2 10h10l2-7H7M9 20h.01M17 20h.01" /></svg>' }),
+                el('h2', { text: unavailable ? '상품 정보를 확인하지 못했습니다.' : '장바구니가 비어 있습니다.' }),
+                el('p', { text: unavailable
+                  ? '담은 상품은 그대로 보관했습니다. 잠시 후 페이지를 새로고침해주세요.'
+                  : '오늘 올라온 농산물을 둘러보고 필요한 상품을 담아보세요.' }),
+                unavailable ? null : el('a', { class: 'btn', href: '/', text: '상품 둘러보기' }),
+              ]),
+            ]),
+          );
           $('#bar').hidden = true;
           $('#checkout').hidden = true;
           return;
         }
 
         let total = 0;
-        for (const item of items) {
-          let listing = null;
-          try {
-            listing = (await api(`/api/store/listings/${item.listingId}`)).listing;
-          } catch {
-            continue;
-          }
-          const amount = listing.unit_price * item.quantity;
+        for (const { listing, quantity } of available) {
+          const amount = listing.unit_price * quantity;
           total += amount;
           box.append(
-            el('div', { class: 'panel', style: 'display:flex;gap:12px;align-items:center;margin-top:12px' }, [
-              el('img', { src: imageOf(listing), alt: '', style: 'width:76px;height:76px;border-radius:12px;object-fit:cover' }),
-              el('div', { style: 'flex:1' }, [
-                el('div', { style: 'font-weight:700;font-size:15px', text: listing.title }),
-                el('div', { style: 'font-size:13px;color:var(--muted)', text: `${listing.farm_name} · ${listing.sku_label}` }),
-                el('div', { style: 'font-weight:900;margin-top:4px', text: money(amount) }),
+            el('article', { class: 'cart-item' }, [
+              el('img', { src: imageOf(listing), alt: listing.title }),
+              el('div', { class: 'cart-item-copy' }, [
+                el('div', { class: 'cart-item-title', text: listing.title }),
+                el('div', { class: 'cart-item-meta', text: `${listing.farm_name} · ${listing.sku_label} · 남은 재고 ${listing.remaining_quantity}개` }),
+                el('div', { class: 'cart-item-price', text: money(amount) }),
               ]),
-              el('div', { class: 'inline-actions' }, [
-                el('button', { type: 'button', text: '−', onclick: () => { setQuantity(item.listingId, item.quantity - 1); render(); } }),
-                el('span', { style: 'min-width:28px;text-align:center;font-weight:800', text: String(item.quantity) }),
-                el('button', { type: 'button', text: '+', onclick: () => { setQuantity(item.listingId, Math.min(item.quantity + 1, listing.remaining_quantity)); render(); } }),
+              el('div', { class: 'quantity-control', 'aria-label': `${listing.title} 수량` }, [
+                el('button', { type: 'button', 'aria-label': `${listing.title} 수량 줄이기`, text: '−', onclick: () => { setQuantity(listing.id, quantity - 1); render(); } }),
+                el('span', { 'aria-live': 'polite', text: String(quantity) }),
+                el('button', { type: 'button', 'aria-label': `${listing.title} 수량 늘리기`, text: '+', disabled: quantity >= listing.remaining_quantity ? '' : null, onclick: () => { setQuantity(listing.id, quantity + 1); render(); } }),
               ]),
             ]),
           );
         }
 
         $('#total').textContent = money(total);
-        $('#bar').hidden = false;
-        $('#checkout').hidden = false;
+        $('#bar').hidden = unavailable > 0;
+        $('#checkout').hidden = unavailable > 0;
       }
 
       await render();
 
-      $('#orderBtn').addEventListener('click', async () => {
+      $('#checkout').addEventListener('submit', async (event) => {
+        event.preventDefault();
         const current = await me();
         if (!current || current.user.role !== 'consumer') {
           location.href = '/login?role=consumer&next=/store/cart';
           return;
         }
-        const btn = $('#orderBtn');
-        btn.disabled = true;
+
+        const button = $('#orderBtn');
+        button.disabled = true;
+        button.textContent = '주문 접수 중';
         try {
-          const res = await api('/api/store/orders', {
+          const response = await api('/api/store/orders', {
             body: {
-              lines: readCart().map((i) => ({ listingId: i.listingId, quantity: i.quantity })),
+              lines: readCart().map((item) => ({ listingId: item.listingId, quantity: item.quantity })),
               receiverName: $('#rName').value.trim(),
               receiverPhone: $('#rPhone').value.trim(),
               address: $('#rAddress').value.trim(),
@@ -114,10 +222,16 @@
             },
           });
           clearCart();
-          location.href = `/store/orders?new=${encodeURIComponent(res.order.order_no)}`;
-        } catch (err) {
-          toast(err.message ?? '주문에 실패했습니다.');
-          btn.disabled = false;
+          location.href = `/store/orders?new=${encodeURIComponent(response.order.order_no)}`;
+        } catch (error) {
+          if (error.code === 'out_of_stock' || error.code === 'not_found') {
+            await render();
+            toast('재고 변동을 반영했습니다. 수량을 다시 확인해주세요.');
+          } else {
+            toast(error.message ?? '주문을 접수하지 못했습니다.');
+          }
+          button.disabled = false;
+          button.textContent = '주문 접수하기';
         }
       });
 

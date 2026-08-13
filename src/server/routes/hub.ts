@@ -1,25 +1,19 @@
 import { db } from '../../db/index.js';
-import { hubCounters, listInspections, recordInspection } from '../../domain/inspections.js';
-import { belongsToHub, getListingView, listForHub, setInspectionStatus } from '../../domain/listings.js';
-import type { InspectionStatus, User } from '../../domain/types.js';
+import { listInspections, recordInspection } from '../../domain/inspections.js';
+import { belongsToHub, getListingView } from '../../domain/listings.js';
+import {
+  advanceHubOrderItem,
+  getOrderItemForHub,
+  listOrderItemsForHub,
+  markHubOrderReceived,
+} from '../../domain/orders.js';
+import type { User } from '../../domain/types.js';
 import { HttpError } from '../../lib/http.js';
 import type { Ctx, Router } from '../../lib/http.js';
 import { requireRole } from '../../lib/session.js';
 
 /** 실물 검수로 확정할 수 있는 등급. 임의 문자열이 소비자 화면에 걸리면 안 된다. */
 const GRADES = ['특', '상', '보통'] as const;
-
-/**
- * 진행 상태는 되돌릴 수 없다.
- * 검수 전 매물을 곧바로 '배송 완료'로 만들거나 검수 완료를 다시 미검수로 되돌리는 것을 막는다.
- */
-const NEXT_STATUS: Record<InspectionStatus, InspectionStatus[]> = {
-  ai_checked: ['hub_pending'],
-  hub_pending: [],           // 여기서 다음 단계로 가려면 검수 기록이 필요하다
-  hub_passed: ['ready_to_ship'],
-  ready_to_ship: ['delivered'],
-  delivered: [],
-};
 
 /** 담당자는 자기 거점, 관리자는 전체. */
 function hubScope(user: User): number | null {
@@ -42,10 +36,18 @@ export function registerHubRoutes(router: Router): void {
   router.get('/api/hub/dashboard', (ctx) => {
     const user = requireRole(ctx.user, 'hub_operator');
     const scope = hubScope(user);
+    const items = listOrderItemsForHub(db(), scope);
+    const count = (status: string): number => items.filter((item) => item.fulfillment_status === status).length;
     ctx.json({
       hubId: scope,
-      counters: hubCounters(db(), scope),
-      listings: listForHub(db(), scope),
+      counters: {
+        incoming: count('ready_for_hub'),
+        needInspection: count('hub_received'),
+        readyToShip: count('hub_passed'),
+        shipping: count('ready_to_ship'),
+        delivered: count('delivered'),
+      },
+      items,
       grades: GRADES,
     });
   });
@@ -65,20 +67,28 @@ export function registerHubRoutes(router: Router): void {
   router.post('/api/hub/inspections', async (ctx) => {
     const user = requireRole(ctx.user, 'hub_operator');
     const body = await ctx.body<{
-      listingId?: number;
+      orderItemId?: number;
       result?: string;
       gradedQuality?: string;
       note?: string;
     }>();
 
-    const listingId = Number(body.listingId);
-    if (!Number.isInteger(listingId)) throw new HttpError(400, '상품을 선택해주세요.', 'bad_request');
-    assertInScope(ctx, user, listingId);
+    const orderItemId = Number(body.orderItemId);
+    if (!Number.isInteger(orderItemId)) throw new HttpError(400, '주문 상품을 선택해주세요.', 'bad_request');
+    const item = getOrderItemForHub(db(), orderItemId, hubScope(user));
+    if (!item) throw new HttpError(404, '주문 상품을 찾을 수 없습니다.', 'not_found');
+    const listingId = item.listing_id;
 
     const listing = getListingView(db(), listingId);
     if (!listing) throw new HttpError(404, '상품을 찾을 수 없습니다.', 'not_found');
     if (listing.status === 'closed') {
       throw new HttpError(409, '이미 반려된 상품입니다.', 'closed');
+    }
+    if (item.fulfillment_status !== 'hub_received') {
+      throw new HttpError(409, '입고 확인된 주문 상품만 검수할 수 있습니다.', 'not_received');
+    }
+    if (listing.inspection_status !== 'ai_checked' && listing.inspection_status !== 'hub_pending') {
+      throw new HttpError(409, '이미 검수가 끝난 상품입니다.', 'inspection_finished');
     }
 
     const result = body.result;
@@ -99,10 +109,14 @@ export function registerHubRoutes(router: Router): void {
       gradedQuality = grade;
     }
 
-    const note = typeof body.note === 'string' ? body.note.slice(0, 200) : null;
+    const note = typeof body.note === 'string' ? body.note.trim().slice(0, 200) || null : null;
+    if (result === 'reject' && !note) {
+      throw new HttpError(400, '반려 사유를 입력해주세요.', 'missing_rejection_note');
+    }
 
     const inspection = recordInspection(db(), {
       listingId,
+      orderItemId,
       hubId: user.hub_id,
       inspector: user.name,
       result,
@@ -112,24 +126,25 @@ export function registerHubRoutes(router: Router): void {
     ctx.json({ inspection }, 201);
   });
 
-  router.post('/api/hub/listings/:id/status', async (ctx) => {
+  router.post('/api/hub/order-items/:id/status', async (ctx) => {
     const user = requireRole(ctx.user, 'hub_operator');
     const id = Number(ctx.params['id']);
-    if (!Number.isInteger(id)) throw new HttpError(400, '잘못된 상품입니다.', 'bad_request');
-    assertInScope(ctx, user, id);
+    if (!Number.isInteger(id)) throw new HttpError(400, '잘못된 주문 상품입니다.', 'bad_request');
 
     const body = await ctx.body<{ status?: string }>();
-    const status = body.status as InspectionStatus | undefined;
-    const listing = getListingView(db(), id);
-    if (!listing) throw new HttpError(404, '상품을 찾을 수 없습니다.', 'not_found');
-    if (!status || !NEXT_STATUS[listing.inspection_status]?.includes(status)) {
-      throw new HttpError(
-        409,
-        `'${listing.inspection_status}' 다음 단계로 갈 수 없는 상태입니다.`,
-        'bad_transition',
-      );
+    const scope = hubScope(user);
+    if (!getOrderItemForHub(db(), id, scope)) {
+      throw new HttpError(404, '주문 상품을 찾을 수 없습니다.', 'not_found');
     }
-    setInspectionStatus(db(), id, status);
+    const status = body.status;
+    const changed = status === 'hub_received'
+      ? markHubOrderReceived(db(), id, scope)
+      : status === 'ready_to_ship' || status === 'delivered'
+        ? advanceHubOrderItem(db(), id, scope, status)
+        : false;
+    if (!changed) {
+      throw new HttpError(409, '순서대로만 처리할 수 있습니다.', 'bad_transition');
+    }
     ctx.json({ ok: true, status });
   });
 }

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="ON-FARM">
-  <rect width="512" height="512" rx="112" fill="#1f7a3f" />
+  <rect width="512" height="512" rx="112" fill="#00754a" />
   <path d="M256 392c-70 0-126-56-126-126 0-8 6-14 14-14 70 0 126 56 126 126 0 8-6 14-14 14z" fill="#8fd6a4" />
   <path d="M270 392c-8 0-14-6-14-14 0-70 56-126 126-126 8 0 14 6 14 14 0 70-56 126-126 126z" fill="#c9f0d4" />
   <rect x="244" y="300" width="24" height="120" rx="12" fill="#f4d38b" />
