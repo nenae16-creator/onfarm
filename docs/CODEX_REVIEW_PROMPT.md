@@ -21,7 +21,7 @@ codex exec --sandbox read-only -C "C:\Users\Admin\Documents\onfarm" -o "codex_re
 
 고령 농어민이 **사진 한 장으로 농산물을 판매 등록**하는 MVP다.
 Node 24 + 내장 `node:sqlite`, 런타임 의존성 0(단 `onnxruntime-node`는 선택적 의존성),
-TypeScript strict, 테스트 162개 통과. 천안시 공모전 제출용.
+TypeScript strict, 테스트 174개 통과. 천안시 공모전 제출용.
 
 무시할 경로: `node_modules/`, `dist/`, `data/`, `models/*.onnx*`, `models/*.pt`, `package-lock.json`
 
