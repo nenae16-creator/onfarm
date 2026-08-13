@@ -1,52 +1,52 @@
 [
   {
     "id": "home",
-    "start": 2.081,
-    "end": 8.666
+    "start": 5.344,
+    "end": 11.929
   },
   {
     "id": "photo",
-    "start": 9.878,
-    "end": 15.084
+    "start": 13.024,
+    "end": 18.213
   },
   {
     "id": "analyze",
-    "start": 15.13,
-    "end": 19.509
+    "start": 18.238,
+    "end": 22.616
   },
   {
     "id": "candidates",
-    "start": 19.516,
-    "end": 30.921
+    "start": 22.623,
+    "end": 34.061
   },
   {
     "id": "alternative",
-    "start": 30.986,
-    "end": 39.273
+    "start": 34.219,
+    "end": 42.551
   },
   {
     "id": "pick",
-    "start": 39.388,
-    "end": 43.813
+    "start": 43.45,
+    "end": 47.91
   },
   {
     "id": "quantity",
-    "start": 44.38,
-    "end": 56.563
+    "start": 48.658,
+    "end": 60.838
   },
   {
     "id": "confirm",
-    "start": 56.982,
-    "end": 60.948
+    "start": 61.363,
+    "end": 65.338
   },
   {
     "id": "done",
-    "start": 61.021,
-    "end": 70.876
+    "start": 65.773,
+    "end": 75.622
   },
   {
     "id": "store",
-    "start": 71.852,
-    "end": 80.745
+    "start": 76.689,
+    "end": 85.578
   }
 ]

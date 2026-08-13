@@ -2376,3 +2376,69 @@ button.back-link {
     stroke-dashoffset: 0;
   }
 }
+
+/*
+  결과 화면 — 후보 3개를 한 화면에서 고르게 한다.
+
+  이 화면이 하는 일은 하나다: "이 중에 어느 것인가요?" 하고 번호를 고르게 하는 것.
+  그런데 사진과 제목이 크면 2·3번이 접힘선 아래로 내려가 스크롤해야 보인다.
+  고령 농가에게 스크롤은 그 자체가 장벽이고, "화면은 항상 1·2·3번 중에 고르게
+  되어 있다"는 이 제품의 약속이 화면에서 사라진다.
+
+  390x844(아이폰 기준선)에서 하단 탭바 위 771px 안에 후보 3개가 들어오도록
+  사진과 제목만 눌렀다. 다른 단계(사진·수량·완료)는 건드리지 않는다.
+  회귀 검사: node tools/verify_layout.mjs
+*/
+.sell-main {
+  padding-top: 28px;
+}
+
+#stepResult .result-photo {
+  aspect-ratio: 16 / 10;
+  max-height: 176px;
+  margin-bottom: 12px;
+}
+
+#stepResult .result-heading {
+  margin-bottom: 10px;
+}
+
+#stepResult .result-heading h1 {
+  font-size: clamp(30px, 7vw, 40px);
+}
+
+#stepResult .result-heading .lead {
+  margin-top: 6px;
+  font-size: 16px;
+}
+
+/*
+  세로가 짧은 폰(360x780 급)에서는 위 값으로도 3번 후보가 접힘선에 걸린다.
+  화면이 짧을수록 더 눌러서, 어떤 폰에서도 후보 3개가 한 화면에 있게 한다.
+  기준은 뷰포트 높이다 — 폭이 아니라 세로가 부족해서 생기는 문제이기 때문이다.
+*/
+@media (max-height: 820px) {
+  .sell-main {
+    padding-top: 16px;
+  }
+
+  #stepResult .result-photo {
+    aspect-ratio: 2 / 1;
+    max-height: 124px;
+    margin-bottom: 8px;
+  }
+
+  #stepResult .result-heading {
+    margin-bottom: 6px;
+  }
+
+  #stepResult .result-heading h1 {
+    font-size: 26px;
+  }
+
+  #stepResult .result-heading .lead {
+    margin-top: 4px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+}
