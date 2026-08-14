@@ -30,7 +30,8 @@ LOCALFOOD_FARMS = 2256          # 한국경제 2026-05-27
 LOCALFOOD_STORES = 12
 LOCALFOOD_SALES_EOK = 271
 CHEONAN_ELDERLY_RATE = 0.700    # 천안 실측: DT_1AG20107(2020 농림어업총조사) 7,773/11,111
-                                # 전국 78.8% 를 적용하던 추정치를 걷어냈다 — 출처가 확인되지 않았다
+                                # 전국값(2025 총조사 78.8%)을 천안에 곱하던 방식을 걷어냈다.
+                                # 전국 비율은 대조용일 뿐, 천안에 곱하지 않는다.
 
 
 def read_kosis(path: Path) -> tuple[int, str]:

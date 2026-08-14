@@ -376,10 +376,10 @@ def build() -> Path:
     s.shapes.add_picture(str(gap_png), Inches(0.75), Inches(1.95), height=Inches(4.4))
     rows = [
         ("천안시 전체 농가", f"{CHEONAN_FARMS:,}가구", "KOSIS 농림어업조사 2024 (상대표준오차 4.5%)"),
-        ("로컬푸드 참여 농가", f"{LOCALFOOD_FARMS:,}가구", f"직매장 {LOCALFOOD_STORES}곳 · 2026년 매출 {LOCALFOOD_SALES_EOK}억 원"),
+        ("로컬푸드 참여 농가", f"{LOCALFOOD_FARMS:,}곳", f"직매장 {LOCALFOOD_STORES}곳 · 매출 {LOCALFOOD_SALES_EOK}억 원 · 시 보도자료 기준"),
         ("체계 밖 농가", f"{OUTSIDE:,}가구",
-         f"그들은 평균 {CHEONAN_MEAN_AGE}세가 경영하는 소농이다 "
-         f"(60대 이상 {ELDERLY_RATE:.0%} · 경지 1ha 미만 {SMALL_FARM_RATE:.0%})"),
+         f"평균 {CHEONAN_MEAN_AGE}세가 경영하는 소농 "
+         f"(60대 이상 {ELDERLY_RATE:.0%} · 1ha 미만 {SMALL_FARM_RATE:.0%}) — 2020년 값이라 지금은 더 높다"),
     ]
     for i, (k, v, note) in enumerate(rows):
         y = Inches(2.1 + i * 1.28)
@@ -388,10 +388,10 @@ def build() -> Path:
              color=ORANGE if i == 2 else INK)
         text(s, Inches(9.5), y + Inches(0.12), Inches(3.1), Inches(0.9), note, size=11.5,
              color=MUTED, spacing=1.2)
-    box(s, Inches(6.5), Inches(5.95), Inches(6.0), Inches(0.78), fill=RGBColor(0xF5, 0xEF, 0xE4), line=None)
-    text(s, Inches(6.75), Inches(6.08), Inches(5.6), Inches(0.55),
-         "조사 주체·기준이 달라 정밀한 차집합이 아닙니다. 농가 수는 2024년, "
-         "연령·경지 비율은 2020년 총조사입니다.",
+    box(s, Inches(6.5), Inches(5.68), Inches(6.0), Inches(1.06), fill=RGBColor(0xF5, 0xEF, 0xE4), line=None)
+    text(s, Inches(6.75), Inches(5.80), Inches(5.6), Inches(0.9),
+         "참여 2,256곳은 시 보도자료, 농가 9,488은 KOSIS 2024 — 조사 주체가 달라 정밀 차집합이 아닙니다. "
+         "연령·경지는 2020년 총조사이고 전국은 그 사이 73.3%→78.8% 로 올랐습니다.",
          size=12.5, color=INK, spacing=1.2)
     source(s, "출처: KOSIS DT_1EA1011(2024) 농가 · DT_1AG20107(2020 농림어업총조사) 연령·경지 · 로컬푸드 현황 보도(2026-05-27) · 산출 tools/cheonan_gap.py·cheonan_age.py")
 
