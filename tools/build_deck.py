@@ -363,13 +363,13 @@ def build() -> Path:
          "▲ 여기가 비어 있다", size=15, bold=True, align=PP_ALIGN.CENTER, color=ORANGE)
     box(s, Inches(0.85), Inches(5.15), Inches(11.6), Inches(1.35), fill=RGBColor(0xF5, 0xEF, 0xE4), line=None)
     text(s, Inches(1.2), Inches(5.42), Inches(11), Inches(0.9),
-         [[("밭에서 아무리 잘 길러도 ", {}), ("팔지 못하면 생산성은 0", {"bold": True, "color": ORANGE}),
-           ("입니다.", {})],
-          [("ON-FARM 은 왼쪽 화살표가 아니라 ", {"color": MUTED}),
-           ("오른쪽 화살표", {"bold": True, "color": INK}),
-           ("를 굵게 만듭니다 — 이것이 실현 생산성입니다.", {"color": MUTED})]],
-         size=17, spacing=1.35)
-    source(s, "과제4 「스마트 농업 & 축산 생산성 향상」의 생산성을 재배 단계가 아니라 실현 단계로 정의한다.")
+         [[("생산성 = 잠재생산량 × 수확률 × ", {"size": 19, "color": INK}),
+           ("판매전환율", {"size": 19, "bold": True, "color": ORANGE})],
+          [("ON-FARM 은 ", {"color": MUTED}), ("마지막 항 하나만", {"bold": True, "color": INK}),
+           (" 건드립니다 — 앞의 두 항을 다루는 스마트팜 과제와 겹치지 않습니다.", {"color": MUTED})]],
+         size=16, spacing=1.35)
+    source(s, "과제4 「스마트 농업 & 축산 생산성 향상」의 생산성을 재배 단계가 아니라 실현 단계로 정의한다. "
+              "밭에서 잘 길러도 팔지 못하면 그 해의 생산성은 0이다.")
 
     # 3 천안 근거 ────────────────────────────────────────────────────────
     s = blank(prs); head(s, "천안 데이터", f"천안 농가 4곳 중 3곳은 로컬푸드 체계 밖에 있다", 3)
